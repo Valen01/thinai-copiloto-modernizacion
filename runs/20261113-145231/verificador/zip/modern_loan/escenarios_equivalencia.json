@@ -1,0 +1,7974 @@
+{
+ "escenarios": [
+  {
+   "id": "E01",
+   "regla": "R-001",
+   "descripcion": "Siniestro no REGISTRADO => ORA-20001 y sin escritura",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "LIQUIDADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "error": "ORA-20001",
+    "liquidaciones_nuevas": 0,
+    "estado_siniestro": "LIQUIDADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:367-370"
+  },
+  {
+   "id": "E02",
+   "regla": "R-001",
+   "descripcion": "PENDIENTE_REVISION tampoco se reprocesa (borde)",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "PENDIENTE_REVISION"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "error": "ORA-20001",
+    "liquidaciones_nuevas": 0,
+    "estado_siniestro": "PENDIENTE_REVISION"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:367-370"
+  },
+  {
+   "id": "E03",
+   "regla": "R-002",
+   "descripcion": "Siniestro inexistente => NO_DATA_FOUND",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 999,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "error": "NO_DATA_FOUND",
+    "liquidaciones_nuevas": 0,
+    "estado_siniestro": null
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:361-365"
+  },
+  {
+   "id": "E04",
+   "regla": "R-002",
+   "descripcion": "Cliente de la poliza inexistente => NO_DATA_FOUND, sin escritura",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 2,
+      "nombre": "OTRO",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "error": "NO_DATA_FOUND",
+    "liquidaciones_nuevas": 0,
+    "estado_siniestro": "REGISTRADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:373"
+  },
+  {
+   "id": "E05",
+   "regla": "R-003",
+   "descripcion": "Parametro inexistente (FACTOR_INFLACION, leido al inicio) => ORA-20010 para todo siniestro",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "error": "ORA-20010",
+    "liquidaciones_nuevas": 0,
+    "estado_siniestro": "REGISTRADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:111,375"
+  },
+  {
+   "id": "E06",
+   "regla": "R-003",
+   "descripcion": "Parametro de uso perezoso inexistente (DIAS_MAX_DENUNCIA) => ORA-20010",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "error": "ORA-20010",
+    "liquidaciones_nuevas": 0,
+    "estado_siniestro": "REGISTRADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:111,412"
+  },
+  {
+   "id": "E07",
+   "regla": "R-004",
+   "descripcion": "PREFERENTE no recibe descuento VIP (mismo resultado que ESTANDAR)",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "PREFERENTE"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "APROBADA",
+    "motivo": "LIQUIDACION_AUTOMATICA",
+    "base": "1000.00",
+    "deducible": "100.00",
+    "cubierto": "900.00",
+    "retencion": "0.00",
+    "neto": "900.00",
+    "observaciones": null,
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "1000.00",
+    "estado_siniestro": "LIQUIDADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:201-205 (solo VIP)"
+  },
+  {
+   "id": "E08",
+   "regla": "R-004",
+   "descripcion": "Feliz base: ESTANDAR, FIJO 100, sin ajustes",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "APROBADA",
+    "motivo": "LIQUIDACION_AUTOMATICA",
+    "base": "1000.00",
+    "deducible": "100.00",
+    "cubierto": "900.00",
+    "retencion": "0.00",
+    "neto": "900.00",
+    "observaciones": null,
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "1000.00",
+    "estado_siniestro": "LIQUIDADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:487-612"
+  },
+  {
+   "id": "E09",
+   "regla": "R-005",
+   "descripcion": "Poliza CANCELADA => POLIZA_NO_VIGENTE",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "CANCELADA",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "RECHAZADA",
+    "motivo": "POLIZA_NO_VIGENTE",
+    "base": "0.00",
+    "deducible": "0.00",
+    "cubierto": "0.00",
+    "retencion": "0.00",
+    "neto": "0.00",
+    "observaciones": null,
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "1000.00",
+    "estado_siniestro": "RECHAZADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:386-389"
+  },
+  {
+   "id": "E10",
+   "regla": "R-005",
+   "descripcion": "Poliza SUSPENDIDA (borde): rechazo, el WARN posterior es inalcanzable",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "SUSPENDIDA",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "RECHAZADA",
+    "motivo": "POLIZA_NO_VIGENTE",
+    "base": "0.00",
+    "deducible": "0.00",
+    "cubierto": "0.00",
+    "retencion": "0.00",
+    "neto": "0.00",
+    "observaciones": null,
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "1000.00",
+    "estado_siniestro": "RECHAZADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:386-389,465-468"
+  },
+  {
+   "id": "E11",
+   "regla": "R-006",
+   "descripcion": "Ocurrencia = fecha_inicio (inclusive) => se liquida",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2025-01-01",
+      "denuncia": "2025-01-03",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "APROBADA",
+    "motivo": "LIQUIDACION_AUTOMATICA",
+    "base": "1000.00",
+    "deducible": "100.00",
+    "cubierto": "900.00",
+    "retencion": "0.00",
+    "neto": "900.00",
+    "observaciones": null,
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "1000.00",
+    "estado_siniestro": "LIQUIDADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:395"
+  },
+  {
+   "id": "E12",
+   "regla": "R-006",
+   "descripcion": "Ocurrencia un dia antes del inicio => FUERA_DE_VIGENCIA",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2024-12-31",
+      "denuncia": "2025-01-02",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "RECHAZADA",
+    "motivo": "FUERA_DE_VIGENCIA",
+    "base": "0.00",
+    "deducible": "0.00",
+    "cubierto": "0.00",
+    "retencion": "0.00",
+    "neto": "0.00",
+    "observaciones": null,
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "1000.00",
+    "estado_siniestro": "RECHAZADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:395-399"
+  },
+  {
+   "id": "E13",
+   "regla": "R-006",
+   "descripcion": "Ocurrencia = fecha_fin (inclusive) => se liquida",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-12-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-12-31",
+      "denuncia": "2026-12-31",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "APROBADA",
+    "motivo": "LIQUIDACION_AUTOMATICA",
+    "base": "1000.00",
+    "deducible": "100.00",
+    "cubierto": "900.00",
+    "retencion": "0.00",
+    "neto": "900.00",
+    "observaciones": null,
+    "fecha_liquidacion": "2026-12-31",
+    "reclamado": "1000.00",
+    "estado_siniestro": "LIQUIDADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:396,277"
+  },
+  {
+   "id": "E14",
+   "regla": "R-006",
+   "descripcion": "Ocurrencia un dia despues del fin => FUERA_DE_VIGENCIA",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2027-01-01",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2027-01-01",
+      "denuncia": "2027-01-01",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "RECHAZADA",
+    "motivo": "FUERA_DE_VIGENCIA",
+    "base": "0.00",
+    "deducible": "0.00",
+    "cubierto": "0.00",
+    "retencion": "0.00",
+    "neto": "0.00",
+    "observaciones": null,
+    "fecha_liquidacion": "2027-01-01",
+    "reclamado": "1000.00",
+    "estado_siniestro": "RECHAZADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:396-399,277"
+  },
+  {
+   "id": "E15",
+   "regla": "R-007",
+   "descripcion": "Denuncia a 30 dias exactos (limite inclusive) => se liquida",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-01",
+      "denuncia": "2026-03-03",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "APROBADA",
+    "motivo": "LIQUIDACION_AUTOMATICA",
+    "base": "1000.00",
+    "deducible": "100.00",
+    "cubierto": "900.00",
+    "retencion": "0.00",
+    "neto": "900.00",
+    "observaciones": null,
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "1000.00",
+    "estado_siniestro": "LIQUIDADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:407,415"
+  },
+  {
+   "id": "E16",
+   "regla": "R-007",
+   "descripcion": "Denuncia a 31 dias => DENUNCIA_EXTEMPORANEA",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-01",
+      "denuncia": "2026-03-04",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "RECHAZADA",
+    "motivo": "DENUNCIA_EXTEMPORANEA",
+    "base": "0.00",
+    "deducible": "0.00",
+    "cubierto": "0.00",
+    "retencion": "0.00",
+    "neto": "0.00",
+    "observaciones": null,
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "1000.00",
+    "estado_siniestro": "RECHAZADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:415-417"
+  },
+  {
+   "id": "E17",
+   "regla": "R-007",
+   "descripcion": "VIDA: 365 dias exactos => se liquida (sin retencion por VIDA)",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "VIDA",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2025-03-01",
+      "denuncia": "2026-03-01",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "APROBADA",
+    "motivo": "LIQUIDACION_AUTOMATICA",
+    "base": "1000.00",
+    "deducible": "100.00",
+    "cubierto": "900.00",
+    "retencion": "0.00",
+    "neto": "900.00",
+    "observaciones": null,
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "1000.00",
+    "estado_siniestro": "LIQUIDADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:409-410,415"
+  },
+  {
+   "id": "E18",
+   "regla": "R-007",
+   "descripcion": "VIDA: 366 dias => DENUNCIA_EXTEMPORANEA",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "VIDA",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2025-03-01",
+      "denuncia": "2026-03-02",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "RECHAZADA",
+    "motivo": "DENUNCIA_EXTEMPORANEA",
+    "base": "0.00",
+    "deducible": "0.00",
+    "cubierto": "0.00",
+    "retencion": "0.00",
+    "neto": "0.00",
+    "observaciones": null,
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "1000.00",
+    "estado_siniestro": "RECHAZADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:409-417"
+  },
+  {
+   "id": "E19",
+   "regla": "R-008",
+   "descripcion": "Cobertura no contratada => COBERTURA_NO_CONTRATADA",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "OTRA",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "RECHAZADA",
+    "motivo": "COBERTURA_NO_CONTRATADA",
+    "base": "0.00",
+    "deducible": "0.00",
+    "cubierto": "0.00",
+    "retencion": "0.00",
+    "neto": "0.00",
+    "observaciones": null,
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "1000.00",
+    "estado_siniestro": "RECHAZADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:423-433"
+  },
+  {
+   "id": "E20",
+   "regla": "R-009",
+   "descripcion": "Dias desde inicio = carencia (30) => ya activa, se liquida",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2026-01-11",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 30
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "APROBADA",
+    "motivo": "LIQUIDACION_AUTOMATICA",
+    "base": "1000.00",
+    "deducible": "100.00",
+    "cubierto": "900.00",
+    "retencion": "0.00",
+    "neto": "900.00",
+    "observaciones": null,
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "1000.00",
+    "estado_siniestro": "LIQUIDADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:440-442"
+  },
+  {
+   "id": "E21",
+   "regla": "R-009",
+   "descripcion": "Dias desde inicio = carencia - 1 (29) => EN_PERIODO_CARENCIA",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2026-01-12",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 30
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "RECHAZADA",
+    "motivo": "EN_PERIODO_CARENCIA",
+    "base": "0.00",
+    "deducible": "0.00",
+    "cubierto": "0.00",
+    "retencion": "0.00",
+    "neto": "0.00",
+    "observaciones": null,
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "1000.00",
+    "estado_siniestro": "RECHAZADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:440-445"
+  },
+  {
+   "id": "E22",
+   "regla": "R-010",
+   "descripcion": "ESTANDAR con prima pendiente > 0 => PRIMA_EN_MORA (obs NULL)",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "100"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "RECHAZADA",
+    "motivo": "PRIMA_EN_MORA",
+    "base": "0.00",
+    "deducible": "0.00",
+    "cubierto": "0.00",
+    "retencion": "0.00",
+    "neto": "0.00",
+    "observaciones": null,
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "1000.00",
+    "estado_siniestro": "RECHAZADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:451-461"
+  },
+  {
+   "id": "E23",
+   "regla": "R-010",
+   "descripcion": "VIP con deuda = 500 (tolerancia inclusive) => se liquida con marca; VIP descuenta deducible",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "VIP"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "500"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "APROBADA",
+    "motivo": "LIQUIDACION_AUTOMATICA",
+    "base": "1000.00",
+    "deducible": "50.00",
+    "cubierto": "950.00",
+    "retencion": "0.00",
+    "neto": "950.00",
+    "observaciones": "TOLERANCIA_MORA_VIP;DESCUENTO_VIP",
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "1000.00",
+    "estado_siniestro": "LIQUIDADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:454-457,201-205"
+  },
+  {
+   "id": "E24",
+   "regla": "R-010",
+   "descripcion": "VIP con deuda 500.01 => PRIMA_EN_MORA",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "VIP"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "500.01"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "RECHAZADA",
+    "motivo": "PRIMA_EN_MORA",
+    "base": "0.00",
+    "deducible": "0.00",
+    "cubierto": "0.00",
+    "retencion": "0.00",
+    "neto": "0.00",
+    "observaciones": null,
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "1000.00",
+    "estado_siniestro": "RECHAZADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:455-460"
+  },
+  {
+   "id": "E25",
+   "regla": "R-011",
+   "descripcion": "Poliza cancelada y fuera de vigencia => gana POLIZA_NO_VIGENTE",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "CANCELADA",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2027-02-01",
+      "denuncia": "2027-02-02",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "RECHAZADA",
+    "motivo": "POLIZA_NO_VIGENTE",
+    "base": "0.00",
+    "deducible": "0.00",
+    "cubierto": "0.00",
+    "retencion": "0.00",
+    "neto": "0.00",
+    "observaciones": null,
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "1000.00",
+    "estado_siniestro": "RECHAZADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:386,395"
+  },
+  {
+   "id": "E26",
+   "regla": "R-011",
+   "descripcion": "Denuncia tardia y sin cobertura => gana DENUNCIA_EXTEMPORANEA",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "OTRA",
+      "ocurrencia": "2026-01-01",
+      "denuncia": "2026-03-01",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "RECHAZADA",
+    "motivo": "DENUNCIA_EXTEMPORANEA",
+    "base": "0.00",
+    "deducible": "0.00",
+    "cubierto": "0.00",
+    "retencion": "0.00",
+    "neto": "0.00",
+    "observaciones": null,
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "1000.00",
+    "estado_siniestro": "RECHAZADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:415,431"
+  },
+  {
+   "id": "E27",
+   "regla": "R-011",
+   "descripcion": "Sin cobertura y prima en mora => gana COBERTURA_NO_CONTRATADA",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "900"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "OTRA",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "RECHAZADA",
+    "motivo": "COBERTURA_NO_CONTRATADA",
+    "base": "0.00",
+    "deducible": "0.00",
+    "cubierto": "0.00",
+    "retencion": "0.00",
+    "neto": "0.00",
+    "observaciones": null,
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "1000.00",
+    "estado_siniestro": "RECHAZADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:431,451"
+  },
+  {
+   "id": "E28",
+   "regla": "R-011",
+   "descripcion": "Carencia y mora => gana EN_PERIODO_CARENCIA",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "900"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 500
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "RECHAZADA",
+    "motivo": "EN_PERIODO_CARENCIA",
+    "base": "0.00",
+    "deducible": "0.00",
+    "cubierto": "0.00",
+    "retencion": "0.00",
+    "neto": "0.00",
+    "observaciones": null,
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "1000.00",
+    "estado_siniestro": "RECHAZADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:442,451"
+  },
+  {
+   "id": "E29",
+   "regla": "R-012",
+   "descripcion": "Rechazo guarda reclamado original e importes en cero",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "CANCELADA",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "777.77",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "RECHAZADA",
+    "motivo": "POLIZA_NO_VIGENTE",
+    "base": "0.00",
+    "deducible": "0.00",
+    "cubierto": "0.00",
+    "retencion": "0.00",
+    "neto": "0.00",
+    "observaciones": null,
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "777.77",
+    "estado_siniestro": "RECHAZADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:303-322,273-279"
+  },
+  {
+   "id": "E30",
+   "regla": "R-013",
+   "descripcion": "Reclamado = limite => sin tope ni marca LIMITE_COBERTURA",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "200000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "50000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "APROBADA",
+    "motivo": "LIQUIDACION_AUTOMATICA",
+    "base": "50000.00",
+    "deducible": "100.00",
+    "cubierto": "49900.00",
+    "retencion": "998.00",
+    "neto": "48902.00",
+    "observaciones": "RETENCION_APLICADA",
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "50000.00",
+    "estado_siniestro": "LIQUIDADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:487-492"
+  },
+  {
+   "id": "E31",
+   "regla": "R-013",
+   "descripcion": "Reclamado > limite => base = limite y marca",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "200000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "50000.01",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "APROBADA",
+    "motivo": "LIQUIDACION_AUTOMATICA",
+    "base": "50000.00",
+    "deducible": "100.00",
+    "cubierto": "49900.00",
+    "retencion": "998.00",
+    "neto": "48902.00",
+    "observaciones": "LIMITE_COBERTURA;RETENCION_APLICADA",
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "50000.01",
+    "estado_siniestro": "LIQUIDADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:487-489"
+  },
+  {
+   "id": "E32",
+   "regla": "R-014",
+   "descripcion": "Deducible porcentual 5% de 4000 = 200 (sobre base)",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "PORCENTAJE",
+      "deducible_valor": "5",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "4000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "APROBADA",
+    "motivo": "LIQUIDACION_AUTOMATICA",
+    "base": "4000.00",
+    "deducible": "200.00",
+    "cubierto": "3800.00",
+    "retencion": "0.00",
+    "neto": "3800.00",
+    "observaciones": null,
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "4000.00",
+    "estado_siniestro": "LIQUIDADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:193"
+  },
+  {
+   "id": "E33",
+   "regla": "R-014",
+   "descripcion": "Porcentual se calcula sobre el MONTO BASE topado (2000), no el reclamado",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "PORCENTAJE",
+      "deducible_valor": "5",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "2000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "9000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "APROBADA",
+    "motivo": "LIQUIDACION_AUTOMATICA",
+    "base": "2000.00",
+    "deducible": "100.00",
+    "cubierto": "1900.00",
+    "retencion": "0.00",
+    "neto": "1900.00",
+    "observaciones": "LIMITE_COBERTURA",
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "9000.00",
+    "estado_siniestro": "LIQUIDADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:171,193,487-489"
+  },
+  {
+   "id": "E34",
+   "regla": "R-014",
+   "descripcion": "Redondeo 2 dec: ded ROUND(617.2835)=617.28; ret ROUND(234.5678)=234.57",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "PORCENTAJE",
+      "deducible_valor": "5",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "12345.67",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "APROBADA",
+    "motivo": "LIQUIDACION_AUTOMATICA",
+    "base": "12345.67",
+    "deducible": "617.28",
+    "cubierto": "11728.39",
+    "retencion": "234.57",
+    "neto": "11493.82",
+    "observaciones": "RETENCION_APLICADA",
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "12345.67",
+    "estado_siniestro": "LIQUIDADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:193,503,568"
+  },
+  {
+   "id": "E35",
+   "regla": "R-014",
+   "descripcion": "Deducible FIJO se usa tal cual, sin minimo (FIJO 1500 > minimo)",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "1500",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "3000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "APROBADA",
+    "motivo": "LIQUIDACION_AUTOMATICA",
+    "base": "3000.00",
+    "deducible": "1500.00",
+    "cubierto": "1500.00",
+    "retencion": "0.00",
+    "neto": "1500.00",
+    "observaciones": null,
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "3000.00",
+    "estado_siniestro": "LIQUIDADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:189-190"
+  },
+  {
+   "id": "E36",
+   "regla": "R-015",
+   "descripcion": "FIJO 50 (< minimo 100) NO aplica minimo (el minimo es solo porcentual)",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "50",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "APROBADA",
+    "motivo": "LIQUIDACION_AUTOMATICA",
+    "base": "1000.00",
+    "deducible": "50.00",
+    "cubierto": "950.00",
+    "retencion": "0.00",
+    "neto": "950.00",
+    "observaciones": null,
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "1000.00",
+    "estado_siniestro": "LIQUIDADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:189-199"
+  },
+  {
+   "id": "E37",
+   "regla": "R-015",
+   "descripcion": "Porcentual 50 < minimo 100 => deducible 100 y marca DEDUCIBLE_MINIMO",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "PORCENTAJE",
+      "deducible_valor": "5",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "APROBADA",
+    "motivo": "LIQUIDACION_AUTOMATICA",
+    "base": "1000.00",
+    "deducible": "100.00",
+    "cubierto": "900.00",
+    "retencion": "0.00",
+    "neto": "900.00",
+    "observaciones": "DEDUCIBLE_MINIMO",
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "1000.00",
+    "estado_siniestro": "LIQUIDADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:195-198"
+  },
+  {
+   "id": "E38",
+   "regla": "R-015",
+   "descripcion": "Porcentual = minimo exacto (100.00): no es <, sin marca",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "PORCENTAJE",
+      "deducible_valor": "5",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "2000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "APROBADA",
+    "motivo": "LIQUIDACION_AUTOMATICA",
+    "base": "2000.00",
+    "deducible": "100.00",
+    "cubierto": "1900.00",
+    "retencion": "0.00",
+    "neto": "1900.00",
+    "observaciones": null,
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "2000.00",
+    "estado_siniestro": "LIQUIDADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:195"
+  },
+  {
+   "id": "E39",
+   "regla": "R-016",
+   "descripcion": "VIP con FIJO 100: deducible 50 y marca DESCUENTO_VIP",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "VIP"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "APROBADA",
+    "motivo": "LIQUIDACION_AUTOMATICA",
+    "base": "1000.00",
+    "deducible": "50.00",
+    "cubierto": "950.00",
+    "retencion": "0.00",
+    "neto": "950.00",
+    "observaciones": "DESCUENTO_VIP",
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "1000.00",
+    "estado_siniestro": "LIQUIDADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:201-205"
+  },
+  {
+   "id": "E40",
+   "regla": "R-016",
+   "descripcion": "VIP + minimo: 5% de 1000=50 -> minimo 100 -> descuento 50 (descuento DESPUES del minimo)",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "VIP"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "PORCENTAJE",
+      "deducible_valor": "5",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "APROBADA",
+    "motivo": "LIQUIDACION_AUTOMATICA",
+    "base": "1000.00",
+    "deducible": "50.00",
+    "cubierto": "950.00",
+    "retencion": "0.00",
+    "neto": "950.00",
+    "observaciones": "DEDUCIBLE_MINIMO;DESCUENTO_VIP",
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "1000.00",
+    "estado_siniestro": "LIQUIDADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:195-205"
+  },
+  {
+   "id": "E41",
+   "regla": "R-016",
+   "descripcion": "VIP con deducible 0: no hay descuento ni marca (borde > 0)",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "VIP"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "0",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "APROBADA",
+    "motivo": "LIQUIDACION_AUTOMATICA",
+    "base": "1000.00",
+    "deducible": "0.00",
+    "cubierto": "1000.00",
+    "retencion": "0.00",
+    "neto": "1000.00",
+    "observaciones": null,
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "1000.00",
+    "estado_siniestro": "LIQUIDADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:201"
+  },
+  {
+   "id": "E42",
+   "regla": "R-017",
+   "descripcion": "Cubierto = 0 (deducible = base) => BAJO_DEDUCIBLE (el cero rechaza)",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "1000",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "RECHAZADA",
+    "motivo": "BAJO_DEDUCIBLE",
+    "base": "0.00",
+    "deducible": "0.00",
+    "cubierto": "0.00",
+    "retencion": "0.00",
+    "neto": "0.00",
+    "observaciones": null,
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "1000.00",
+    "estado_siniestro": "RECHAZADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:503-508"
+  },
+  {
+   "id": "E43",
+   "regla": "R-017",
+   "descripcion": "Cubierto negativo con minimo: rechazo BAJO_DEDUCIBLE conservando marca DEDUCIBLE_MINIMO",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "PORCENTAJE",
+      "deducible_valor": "5",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "50",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "RECHAZADA",
+    "motivo": "BAJO_DEDUCIBLE",
+    "base": "0.00",
+    "deducible": "0.00",
+    "cubierto": "0.00",
+    "retencion": "0.00",
+    "neto": "0.00",
+    "observaciones": "DEDUCIBLE_MINIMO",
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "50.00",
+    "estado_siniestro": "RECHAZADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:195-198,505-507"
+  },
+  {
+   "id": "E44",
+   "regla": "R-017",
+   "descripcion": "Porcentaje de cobertura 80%: (1000-100)*80/100 = 720",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "80",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "APROBADA",
+    "motivo": "LIQUIDACION_AUTOMATICA",
+    "base": "1000.00",
+    "deducible": "100.00",
+    "cubierto": "720.00",
+    "retencion": "0.00",
+    "neto": "720.00",
+    "observaciones": null,
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "1000.00",
+    "estado_siniestro": "LIQUIDADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:503"
+  },
+  {
+   "id": "E45",
+   "regla": "R-017",
+   "descripcion": "Redondeo mitad arriba del cubierto: 100.05*33.33/100=33.348... -> 33.35",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "0",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "33.33",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "100.05",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "APROBADA",
+    "motivo": "LIQUIDACION_AUTOMATICA",
+    "base": "100.05",
+    "deducible": "0.00",
+    "cubierto": "33.35",
+    "retencion": "0.00",
+    "neto": "33.35",
+    "observaciones": null,
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "100.05",
+    "estado_siniestro": "LIQUIDADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:503"
+  },
+  {
+   "id": "E46",
+   "regla": "R-018",
+   "descripcion": "3 previos LIQUIDADOS en la ventana (>= 3) => penalizacion 10%: 900*90/100=810",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     },
+     {
+      "id": 900,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2025-12-01",
+      "denuncia": "2025-12-01",
+      "monto": "100",
+      "estado": "LIQUIDADO"
+     },
+     {
+      "id": 901,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2025-11-01",
+      "denuncia": "2025-11-01",
+      "monto": "100",
+      "estado": "LIQUIDADO"
+     },
+     {
+      "id": 902,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2025-10-01",
+      "denuncia": "2025-10-01",
+      "monto": "100",
+      "estado": "LIQUIDADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "APROBADA",
+    "motivo": "LIQUIDACION_AUTOMATICA",
+    "base": "1000.00",
+    "deducible": "100.00",
+    "cubierto": "810.00",
+    "retencion": "0.00",
+    "neto": "810.00",
+    "observaciones": "PENALIZACION_SINIESTRALIDAD",
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "1000.00",
+    "estado_siniestro": "LIQUIDADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:521-533"
+  },
+  {
+   "id": "E47",
+   "regla": "R-018",
+   "descripcion": "2 previos (< 3) => sin penalizacion",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     },
+     {
+      "id": 900,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2025-12-01",
+      "denuncia": "2025-12-01",
+      "monto": "100",
+      "estado": "LIQUIDADO"
+     },
+     {
+      "id": 901,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2025-11-01",
+      "denuncia": "2025-11-01",
+      "monto": "100",
+      "estado": "LIQUIDADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "APROBADA",
+    "motivo": "LIQUIDACION_AUTOMATICA",
+    "base": "1000.00",
+    "deducible": "100.00",
+    "cubierto": "900.00",
+    "retencion": "0.00",
+    "neto": "900.00",
+    "observaciones": null,
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "1000.00",
+    "estado_siniestro": "LIQUIDADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:530"
+  },
+  {
+   "id": "E48",
+   "regla": "R-018",
+   "descripcion": "Previo con ocurrencia exactamente 365 dias antes SI cuenta (limite inferior inclusive)",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     },
+     {
+      "id": 900,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2025-02-10",
+      "denuncia": "2025-02-10",
+      "monto": "100",
+      "estado": "LIQUIDADO"
+     },
+     {
+      "id": 901,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2025-11-01",
+      "denuncia": "2025-11-01",
+      "monto": "100",
+      "estado": "LIQUIDADO"
+     },
+     {
+      "id": 902,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2025-10-01",
+      "denuncia": "2025-10-01",
+      "monto": "100",
+      "estado": "LIQUIDADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "APROBADA",
+    "motivo": "LIQUIDACION_AUTOMATICA",
+    "base": "1000.00",
+    "deducible": "100.00",
+    "cubierto": "810.00",
+    "retencion": "0.00",
+    "neto": "810.00",
+    "observaciones": "PENALIZACION_SINIESTRALIDAD",
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "1000.00",
+    "estado_siniestro": "LIQUIDADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:527"
+  },
+  {
+   "id": "E49",
+   "regla": "R-018",
+   "descripcion": "Previo a 366 dias NO cuenta => solo 2 en ventana, sin penalizacion",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     },
+     {
+      "id": 900,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2025-02-09",
+      "denuncia": "2025-02-09",
+      "monto": "100",
+      "estado": "LIQUIDADO"
+     },
+     {
+      "id": 901,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2025-11-01",
+      "denuncia": "2025-11-01",
+      "monto": "100",
+      "estado": "LIQUIDADO"
+     },
+     {
+      "id": 902,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2025-10-01",
+      "denuncia": "2025-10-01",
+      "monto": "100",
+      "estado": "LIQUIDADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "APROBADA",
+    "motivo": "LIQUIDACION_AUTOMATICA",
+    "base": "1000.00",
+    "deducible": "100.00",
+    "cubierto": "900.00",
+    "retencion": "0.00",
+    "neto": "900.00",
+    "observaciones": null,
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "1000.00",
+    "estado_siniestro": "LIQUIDADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:527"
+  },
+  {
+   "id": "E50",
+   "regla": "R-018",
+   "descripcion": "Previo con la MISMA fecha de ocurrencia no cuenta (limite superior exclusivo)",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     },
+     {
+      "id": 900,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-10",
+      "monto": "100",
+      "estado": "LIQUIDADO"
+     },
+     {
+      "id": 901,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2025-11-01",
+      "denuncia": "2025-11-01",
+      "monto": "100",
+      "estado": "LIQUIDADO"
+     },
+     {
+      "id": 902,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2025-10-01",
+      "denuncia": "2025-10-01",
+      "monto": "100",
+      "estado": "LIQUIDADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "APROBADA",
+    "motivo": "LIQUIDACION_AUTOMATICA",
+    "base": "1000.00",
+    "deducible": "100.00",
+    "cubierto": "900.00",
+    "retencion": "0.00",
+    "neto": "900.00",
+    "observaciones": null,
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "1000.00",
+    "estado_siniestro": "LIQUIDADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:528"
+  },
+  {
+   "id": "E51",
+   "regla": "R-018",
+   "descripcion": "Previo en PENDIENTE_REVISION no cuenta (solo LIQUIDADO)",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     },
+     {
+      "id": 900,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2025-12-01",
+      "denuncia": "2025-12-01",
+      "monto": "100",
+      "estado": "PENDIENTE_REVISION"
+     },
+     {
+      "id": 901,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2025-11-01",
+      "denuncia": "2025-11-01",
+      "monto": "100",
+      "estado": "LIQUIDADO"
+     },
+     {
+      "id": 902,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2025-10-01",
+      "denuncia": "2025-10-01",
+      "monto": "100",
+      "estado": "LIQUIDADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "APROBADA",
+    "motivo": "LIQUIDACION_AUTOMATICA",
+    "base": "1000.00",
+    "deducible": "100.00",
+    "cubierto": "900.00",
+    "retencion": "0.00",
+    "neto": "900.00",
+    "observaciones": null,
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "1000.00",
+    "estado_siniestro": "LIQUIDADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:526"
+  },
+  {
+   "id": "E52",
+   "regla": "R-019",
+   "descripcion": "Remanente 0 => SUMA_ASEGURADA_AGOTADA",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "1000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     },
+     {
+      "id": 900,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2025-12-01",
+      "denuncia": "2025-12-01",
+      "monto": "100",
+      "estado": "LIQUIDADO"
+     }
+    ],
+    "liquidaciones_previas": [
+     {
+      "siniestro_id": 900,
+      "estado": "APROBADA",
+      "cubierto": "1000"
+     }
+    ]
+   },
+   "esperado": {
+    "estado": "RECHAZADA",
+    "motivo": "SUMA_ASEGURADA_AGOTADA",
+    "base": "0.00",
+    "deducible": "0.00",
+    "cubierto": "0.00",
+    "retencion": "0.00",
+    "neto": "0.00",
+    "observaciones": null,
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "1000.00",
+    "estado_siniestro": "RECHAZADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:541-553"
+  },
+  {
+   "id": "E53",
+   "regla": "R-019",
+   "descripcion": "Cubierto 900 > remanente 400 => tope a 400 con marca",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "1000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     },
+     {
+      "id": 900,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2025-12-01",
+      "denuncia": "2025-12-01",
+      "monto": "100",
+      "estado": "LIQUIDADO"
+     }
+    ],
+    "liquidaciones_previas": [
+     {
+      "siniestro_id": 900,
+      "estado": "APROBADA",
+      "cubierto": "600"
+     }
+    ]
+   },
+   "esperado": {
+    "estado": "APROBADA",
+    "motivo": "LIQUIDACION_AUTOMATICA",
+    "base": "1000.00",
+    "deducible": "100.00",
+    "cubierto": "400.00",
+    "retencion": "0.00",
+    "neto": "400.00",
+    "observaciones": "TOPE_SUMA_ASEGURADA",
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "1000.00",
+    "estado_siniestro": "LIQUIDADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:555-558"
+  },
+  {
+   "id": "E54",
+   "regla": "R-019",
+   "descripcion": "Cubierto 900 = remanente 900 => sin tope ni marca (borde >)",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "1000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     },
+     {
+      "id": 900,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2025-12-01",
+      "denuncia": "2025-12-01",
+      "monto": "100",
+      "estado": "LIQUIDADO"
+     }
+    ],
+    "liquidaciones_previas": [
+     {
+      "siniestro_id": 900,
+      "estado": "APROBADA",
+      "cubierto": "100"
+     }
+    ]
+   },
+   "esperado": {
+    "estado": "APROBADA",
+    "motivo": "LIQUIDACION_AUTOMATICA",
+    "base": "1000.00",
+    "deducible": "100.00",
+    "cubierto": "900.00",
+    "retencion": "0.00",
+    "neto": "900.00",
+    "observaciones": null,
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "1000.00",
+    "estado_siniestro": "LIQUIDADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:555"
+  },
+  {
+   "id": "E55",
+   "regla": "R-019",
+   "descripcion": "Liquidacion previa RECHAZADA no consume suma asegurada",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "1000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     },
+     {
+      "id": 900,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2025-12-01",
+      "denuncia": "2025-12-01",
+      "monto": "100",
+      "estado": "LIQUIDADO"
+     }
+    ],
+    "liquidaciones_previas": [
+     {
+      "siniestro_id": 900,
+      "estado": "RECHAZADA",
+      "cubierto": "1000"
+     }
+    ]
+   },
+   "esperado": {
+    "estado": "APROBADA",
+    "motivo": "LIQUIDACION_AUTOMATICA",
+    "base": "1000.00",
+    "deducible": "100.00",
+    "cubierto": "900.00",
+    "retencion": "0.00",
+    "neto": "900.00",
+    "observaciones": null,
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "1000.00",
+    "estado_siniestro": "LIQUIDADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:546"
+  },
+  {
+   "id": "E56",
+   "regla": "R-019",
+   "descripcion": "Liquidacion previa PENDIENTE_APROBACION SI consume suma asegurada",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "1000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     },
+     {
+      "id": 900,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2025-12-01",
+      "denuncia": "2025-12-01",
+      "monto": "100",
+      "estado": "PENDIENTE_REVISION"
+     }
+    ],
+    "liquidaciones_previas": [
+     {
+      "siniestro_id": 900,
+      "estado": "PENDIENTE_APROBACION",
+      "cubierto": "600"
+     }
+    ]
+   },
+   "esperado": {
+    "estado": "APROBADA",
+    "motivo": "LIQUIDACION_AUTOMATICA",
+    "base": "1000.00",
+    "deducible": "100.00",
+    "cubierto": "400.00",
+    "retencion": "0.00",
+    "neto": "400.00",
+    "observaciones": "TOPE_SUMA_ASEGURADA",
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "1000.00",
+    "estado_siniestro": "LIQUIDADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:546"
+  },
+  {
+   "id": "E57",
+   "regla": "R-020",
+   "descripcion": "Cubierto = 10000 exacto => sin retencion (estricto >)",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "10100",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "APROBADA",
+    "motivo": "LIQUIDACION_AUTOMATICA",
+    "base": "10100.00",
+    "deducible": "100.00",
+    "cubierto": "10000.00",
+    "retencion": "0.00",
+    "neto": "10000.00",
+    "observaciones": null,
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "10100.00",
+    "estado_siniestro": "LIQUIDADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:565-566"
+  },
+  {
+   "id": "E58",
+   "regla": "R-020",
+   "descripcion": "Cubierto 10000.01 => retencion 2% = 200.00 sobre todo el cubierto",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "10100.01",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "APROBADA",
+    "motivo": "LIQUIDACION_AUTOMATICA",
+    "base": "10100.01",
+    "deducible": "100.00",
+    "cubierto": "10000.01",
+    "retencion": "200.00",
+    "neto": "9800.01",
+    "observaciones": "RETENCION_APLICADA",
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "10100.01",
+    "estado_siniestro": "LIQUIDADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:565-574"
+  },
+  {
+   "id": "E59",
+   "regla": "R-020",
+   "descripcion": "Ramo VIDA nunca retiene aunque supere el umbral",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "VIDA",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "20100",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "APROBADA",
+    "motivo": "LIQUIDACION_AUTOMATICA",
+    "base": "20100.00",
+    "deducible": "100.00",
+    "cubierto": "20000.00",
+    "retencion": "0.00",
+    "neto": "20000.00",
+    "observaciones": null,
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "20100.00",
+    "estado_siniestro": "LIQUIDADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:565"
+  },
+  {
+   "id": "E60",
+   "regla": "R-021",
+   "descripcion": "Orden: cubierto 20000 -> penalizacion 18000 -> tope remanente 15000 -> retencion 300 sobre 15000",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "20000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "20100",
+      "estado": "REGISTRADO"
+     },
+     {
+      "id": 900,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2025-12-01",
+      "denuncia": "2025-12-01",
+      "monto": "100",
+      "estado": "LIQUIDADO"
+     },
+     {
+      "id": 901,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2025-11-01",
+      "denuncia": "2025-11-01",
+      "monto": "100",
+      "estado": "LIQUIDADO"
+     },
+     {
+      "id": 902,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2025-10-01",
+      "denuncia": "2025-10-01",
+      "monto": "100",
+      "estado": "LIQUIDADO"
+     }
+    ],
+    "liquidaciones_previas": [
+     {
+      "siniestro_id": 900,
+      "estado": "APROBADA",
+      "cubierto": "5000"
+     }
+    ]
+   },
+   "esperado": {
+    "estado": "APROBADA",
+    "motivo": "LIQUIDACION_AUTOMATICA",
+    "base": "20100.00",
+    "deducible": "100.00",
+    "cubierto": "15000.00",
+    "retencion": "300.00",
+    "neto": "14700.00",
+    "observaciones": "PENALIZACION_SINIESTRALIDAD;TOPE_SUMA_ASEGURADA;RETENCION_APLICADA",
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "20100.00",
+    "estado_siniestro": "LIQUIDADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:521-574"
+  },
+  {
+   "id": "E61",
+   "regla": "R-022",
+   "descripcion": "ROUND mitad arriba tras la operacion de porcentaje (33.348 -> 33.35)",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "0",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "33.33",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "100.05",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "APROBADA",
+    "motivo": "LIQUIDACION_AUTOMATICA",
+    "base": "100.05",
+    "deducible": "0.00",
+    "cubierto": "33.35",
+    "retencion": "0.00",
+    "neto": "33.35",
+    "observaciones": null,
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "100.05",
+    "estado_siniestro": "LIQUIDADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:503; cabecera 48-52"
+  },
+  {
+   "id": "E62",
+   "regla": "R-022",
+   "descripcion": "Descuento VIP redondeado: ROUND(0.01*50/100,2)=ROUND(0.005,2)=0.01 (mitad arriba)",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "VIP"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "0.01",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "APROBADA",
+    "motivo": "LIQUIDACION_AUTOMATICA",
+    "base": "1000.00",
+    "deducible": "0.01",
+    "cubierto": "999.99",
+    "retencion": "0.00",
+    "neto": "999.99",
+    "observaciones": "DESCUENTO_VIP",
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "1000.00",
+    "estado_siniestro": "LIQUIDADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:203"
+  },
+  {
+   "id": "E63",
+   "regla": "R-023",
+   "descripcion": "15 dias desde inicio y reclamado = 80% del limite => SOSPECHA_FRAUDE (importes guardados)",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2026-02-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "10000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-16",
+      "denuncia": "2026-02-17",
+      "monto": "8000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "PENDIENTE_APROBACION",
+    "motivo": "SOSPECHA_FRAUDE",
+    "base": "8000.00",
+    "deducible": "100.00",
+    "cubierto": "7900.00",
+    "retencion": "0.00",
+    "neto": "7900.00",
+    "observaciones": null,
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "8000.00",
+    "estado_siniestro": "PENDIENTE_REVISION"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:586-592"
+  },
+  {
+   "id": "E64",
+   "regla": "R-023",
+   "descripcion": "Reclamado 7999.99 < umbral => no hay fraude, se aprueba",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2026-02-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "10000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-16",
+      "denuncia": "2026-02-17",
+      "monto": "7999.99",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "APROBADA",
+    "motivo": "LIQUIDACION_AUTOMATICA",
+    "base": "7999.99",
+    "deducible": "100.00",
+    "cubierto": "7899.99",
+    "retencion": "0.00",
+    "neto": "7899.99",
+    "observaciones": null,
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "7999.99",
+    "estado_siniestro": "LIQUIDADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:589"
+  },
+  {
+   "id": "E65",
+   "regla": "R-023",
+   "descripcion": "16 dias desde inicio (> 15) => sin alerta de fraude",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2026-02-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "10000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-17",
+      "denuncia": "2026-02-18",
+      "monto": "8000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "APROBADA",
+    "motivo": "LIQUIDACION_AUTOMATICA",
+    "base": "8000.00",
+    "deducible": "100.00",
+    "cubierto": "7900.00",
+    "retencion": "0.00",
+    "neto": "7900.00",
+    "observaciones": null,
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "8000.00",
+    "estado_siniestro": "LIQUIDADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:588"
+  },
+  {
+   "id": "E66",
+   "regla": "R-023",
+   "descripcion": "Fraude se mide sobre el RECLAMADO: reclamado 20000 (> limite 10000) => fraude; base topada 10000",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2026-02-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "10000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-16",
+      "denuncia": "2026-02-17",
+      "monto": "20000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "PENDIENTE_APROBACION",
+    "motivo": "SOSPECHA_FRAUDE",
+    "base": "10000.00",
+    "deducible": "100.00",
+    "cubierto": "9900.00",
+    "retencion": "0.00",
+    "neto": "9900.00",
+    "observaciones": "LIMITE_COBERTURA",
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "20000.00",
+    "estado_siniestro": "PENDIENTE_REVISION"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:487-489,589"
+  },
+  {
+   "id": "E67",
+   "regla": "R-024",
+   "descripcion": "Neto = tope 50000.00 => se aprueba (estricto >)",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "200000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "100000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "51120.41",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "APROBADA",
+    "motivo": "LIQUIDACION_AUTOMATICA",
+    "base": "51120.41",
+    "deducible": "100.00",
+    "cubierto": "51020.41",
+    "retencion": "1020.41",
+    "neto": "50000.00",
+    "observaciones": "RETENCION_APLICADA",
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "51120.41",
+    "estado_siniestro": "LIQUIDADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:593"
+  },
+  {
+   "id": "E68",
+   "regla": "R-024",
+   "descripcion": "Neto 50000.01 => PENDIENTE_APROBACION / SUPERA_TOPE_AUTOMATICO",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "200000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "100000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "51120.42",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "PENDIENTE_APROBACION",
+    "motivo": "SUPERA_TOPE_AUTOMATICO",
+    "base": "51120.42",
+    "deducible": "100.00",
+    "cubierto": "51020.42",
+    "retencion": "1020.41",
+    "neto": "50000.01",
+    "observaciones": "RETENCION_APLICADA",
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "51120.42",
+    "estado_siniestro": "PENDIENTE_REVISION"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:593-595"
+  },
+  {
+   "id": "E69",
+   "regla": "R-024",
+   "descripcion": "Fraude y neto > tope: prioridad del fraude (SOSPECHA_FRAUDE)",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2026-02-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "200000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "100000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-16",
+      "denuncia": "2026-02-17",
+      "monto": "90000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "PENDIENTE_APROBACION",
+    "motivo": "SOSPECHA_FRAUDE",
+    "base": "90000.00",
+    "deducible": "100.00",
+    "cubierto": "89900.00",
+    "retencion": "1798.00",
+    "neto": "88102.00",
+    "observaciones": "RETENCION_APLICADA",
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "90000.00",
+    "estado_siniestro": "PENDIENTE_REVISION"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:584,588-595"
+  },
+  {
+   "id": "E70",
+   "regla": "R-025",
+   "descripcion": "APROBADA => siniestro LIQUIDADO (mapeo de estados)",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "APROBADA",
+    "motivo": "LIQUIDACION_AUTOMATICA",
+    "base": "1000.00",
+    "deducible": "100.00",
+    "cubierto": "900.00",
+    "retencion": "0.00",
+    "neto": "900.00",
+    "observaciones": null,
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "1000.00",
+    "estado_siniestro": "LIQUIDADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:283-287"
+  },
+  {
+   "id": "E71",
+   "regla": "R-026",
+   "descripcion": "fecha_liquidacion = fecha de proceso recibida (no SYSDATE) y reclamado original",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-04-15",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "APROBADA",
+    "motivo": "LIQUIDACION_AUTOMATICA",
+    "base": "1000.00",
+    "deducible": "100.00",
+    "cubierto": "900.00",
+    "retencion": "0.00",
+    "neto": "900.00",
+    "observaciones": null,
+    "fecha_liquidacion": "2026-04-15",
+    "reclamado": "1000.00",
+    "estado_siniestro": "LIQUIDADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:277-278"
+  },
+  {
+   "id": "E72",
+   "regla": "R-032",
+   "descripcion": "La fecha de proceso no participa en validaciones (corte muy posterior no rechaza)",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2030-01-01",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "APROBADA",
+    "motivo": "LIQUIDACION_AUTOMATICA",
+    "base": "1000.00",
+    "deducible": "100.00",
+    "cubierto": "900.00",
+    "retencion": "0.00",
+    "neto": "900.00",
+    "observaciones": null,
+    "fecha_liquidacion": "2030-01-01",
+    "reclamado": "1000.00",
+    "estado_siniestro": "LIQUIDADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:395-445 (no usan p_fecha_proceso)"
+  },
+  {
+   "id": "E73",
+   "regla": "R-032",
+   "descripcion": "Fecha de proceso anterior a la denuncia en liquidacion directa: igual se liquida",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-02-11",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "APROBADA",
+    "motivo": "LIQUIDACION_AUTOMATICA",
+    "base": "1000.00",
+    "deducible": "100.00",
+    "cubierto": "900.00",
+    "retencion": "0.00",
+    "neto": "900.00",
+    "observaciones": null,
+    "fecha_liquidacion": "2026-02-11",
+    "reclamado": "1000.00",
+    "estado_siniestro": "LIQUIDADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:327-617"
+  },
+  {
+   "id": "E74",
+   "regla": "R-027",
+   "descripcion": "La liquidacion solo agrega 1 fila y cambia el estado del siniestro (sin otros efectos visibles)",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "APROBADA",
+    "motivo": "LIQUIDACION_AUTOMATICA",
+    "base": "1000.00",
+    "deducible": "100.00",
+    "cubierto": "900.00",
+    "retencion": "0.00",
+    "neto": "900.00",
+    "observaciones": null,
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "1000.00",
+    "estado_siniestro": "LIQUIDADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:272-291"
+  },
+  {
+   "id": "E75",
+   "regla": "R-028",
+   "descripcion": "Lote procesa en orden ascendente de siniestro_id",
+   "entrada": {
+    "modo": "lote",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 3,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     },
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     },
+     {
+      "id": 2,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "resumen": {
+     "procesados": 3,
+     "liquidados": 3,
+     "rechazados": 0,
+     "pendientes": 0,
+     "errores": 0,
+     "total_neto_aprobado": "2700.00"
+    },
+    "orden_liquidaciones": [
+     1,
+     2,
+     3
+    ],
+    "estados_siniestros": {
+     "1": "LIQUIDADO",
+     "2": "LIQUIDADO",
+     "3": "LIQUIDADO"
+    },
+    "liquidaciones": {
+     "1": {
+      "estado": "APROBADA",
+      "motivo": "LIQUIDACION_AUTOMATICA",
+      "base": "1000.00",
+      "deducible": "100.00",
+      "cubierto": "900.00",
+      "retencion": "0.00",
+      "neto": "900.00",
+      "observaciones": null,
+      "fecha_liquidacion": "2026-03-31",
+      "reclamado": "1000.00"
+     },
+     "2": {
+      "estado": "APROBADA",
+      "motivo": "LIQUIDACION_AUTOMATICA",
+      "base": "1000.00",
+      "deducible": "100.00",
+      "cubierto": "900.00",
+      "retencion": "0.00",
+      "neto": "900.00",
+      "observaciones": null,
+      "fecha_liquidacion": "2026-03-31",
+      "reclamado": "1000.00"
+     },
+     "3": {
+      "estado": "APROBADA",
+      "motivo": "LIQUIDACION_AUTOMATICA",
+      "base": "1000.00",
+      "deducible": "100.00",
+      "cubierto": "900.00",
+      "retencion": "0.00",
+      "neto": "900.00",
+      "observaciones": null,
+      "fecha_liquidacion": "2026-03-31",
+      "reclamado": "1000.00"
+     }
+    },
+    "commits": 1,
+    "log_niveles": [
+     "INFO",
+     "INFO",
+     "INFO",
+     "INFO",
+     "INFO"
+    ]
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:625-630,679"
+  },
+  {
+   "id": "E76",
+   "regla": "R-028",
+   "descripcion": "Corte inclusivo (denuncia = corte entra); denuncia posterior al corte no se toca",
+   "entrada": {
+    "modo": "lote",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-03-20",
+      "denuncia": "2026-03-31",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     },
+     {
+      "id": 2,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-03-20",
+      "denuncia": "2026-04-01",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     },
+     {
+      "id": 3,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-03-20",
+      "denuncia": "2026-03-30",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "resumen": {
+     "procesados": 2,
+     "liquidados": 2,
+     "rechazados": 0,
+     "pendientes": 0,
+     "errores": 0,
+     "total_neto_aprobado": "1800.00"
+    },
+    "orden_liquidaciones": [
+     1,
+     3
+    ],
+    "estados_siniestros": {
+     "1": "LIQUIDADO",
+     "2": "REGISTRADO",
+     "3": "LIQUIDADO"
+    },
+    "liquidaciones": {
+     "1": {
+      "estado": "APROBADA",
+      "motivo": "LIQUIDACION_AUTOMATICA",
+      "base": "1000.00",
+      "deducible": "100.00",
+      "cubierto": "900.00",
+      "retencion": "0.00",
+      "neto": "900.00",
+      "observaciones": null,
+      "fecha_liquidacion": "2026-03-31",
+      "reclamado": "1000.00"
+     },
+     "3": {
+      "estado": "APROBADA",
+      "motivo": "LIQUIDACION_AUTOMATICA",
+      "base": "1000.00",
+      "deducible": "100.00",
+      "cubierto": "900.00",
+      "retencion": "0.00",
+      "neto": "900.00",
+      "observaciones": null,
+      "fecha_liquidacion": "2026-03-31",
+      "reclamado": "1000.00"
+     }
+    },
+    "commits": 1,
+    "log_niveles": [
+     "INFO",
+     "INFO",
+     "INFO",
+     "INFO"
+    ]
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:628-629"
+  },
+  {
+   "id": "E77",
+   "regla": "R-028",
+   "descripcion": "Lote ignora siniestros que no estan REGISTRADO",
+   "entrada": {
+    "modo": "lote",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "LIQUIDADO"
+     },
+     {
+      "id": 2,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "RECHAZADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "resumen": {
+     "procesados": 0,
+     "liquidados": 0,
+     "rechazados": 0,
+     "pendientes": 0,
+     "errores": 0,
+     "total_neto_aprobado": "0.00"
+    },
+    "orden_liquidaciones": [],
+    "estados_siniestros": {
+     "1": "LIQUIDADO",
+     "2": "RECHAZADO"
+    },
+    "liquidaciones": {},
+    "commits": 1,
+    "log_niveles": [
+     "INFO",
+     "INFO"
+    ]
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:628,642,679-685"
+  },
+  {
+   "id": "E78",
+   "regla": "R-030",
+   "descripcion": "Contadores: liquidado suma neto; rechazado cuenta; pendiente NO suma neto",
+   "entrada": {
+    "modo": "lote",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "500000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "100000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     },
+     {
+      "id": 2,
+      "poliza_id": 101,
+      "cobertura": "OTRA",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     },
+     {
+      "id": 3,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "51120.42",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "resumen": {
+     "procesados": 3,
+     "liquidados": 1,
+     "rechazados": 1,
+     "pendientes": 1,
+     "errores": 0,
+     "total_neto_aprobado": "900.00"
+    },
+    "orden_liquidaciones": [
+     1,
+     2,
+     3
+    ],
+    "estados_siniestros": {
+     "1": "LIQUIDADO",
+     "2": "RECHAZADO",
+     "3": "PENDIENTE_REVISION"
+    },
+    "liquidaciones": {
+     "1": {
+      "estado": "APROBADA",
+      "motivo": "LIQUIDACION_AUTOMATICA",
+      "base": "1000.00",
+      "deducible": "100.00",
+      "cubierto": "900.00",
+      "retencion": "0.00",
+      "neto": "900.00",
+      "observaciones": null,
+      "fecha_liquidacion": "2026-03-31",
+      "reclamado": "1000.00"
+     },
+     "2": {
+      "estado": "RECHAZADA",
+      "motivo": "COBERTURA_NO_CONTRATADA",
+      "base": "0.00",
+      "deducible": "0.00",
+      "cubierto": "0.00",
+      "retencion": "0.00",
+      "neto": "0.00",
+      "observaciones": null,
+      "fecha_liquidacion": "2026-03-31",
+      "reclamado": "1000.00"
+     },
+     "3": {
+      "estado": "PENDIENTE_APROBACION",
+      "motivo": "SUPERA_TOPE_AUTOMATICO",
+      "base": "51120.42",
+      "deducible": "100.00",
+      "cubierto": "51020.42",
+      "retencion": "1020.41",
+      "neto": "50000.01",
+      "observaciones": "RETENCION_APLICADA",
+      "fecha_liquidacion": "2026-03-31",
+      "reclamado": "51120.42"
+     }
+    },
+    "commits": 1,
+    "log_niveles": [
+     "INFO",
+     "INFO",
+     "INFO",
+     "INFO",
+     "INFO"
+    ]
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:645-670"
+  },
+  {
+   "id": "E79",
+   "regla": "R-019",
+   "descripcion": "Lote: el liquidado antes afecta al siguiente (suma asegurada: 1500-900=600 -> 2do topado a 600)",
+   "entrada": {
+    "modo": "lote",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "1500",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     },
+     {
+      "id": 2,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-11",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "resumen": {
+     "procesados": 2,
+     "liquidados": 2,
+     "rechazados": 0,
+     "pendientes": 0,
+     "errores": 0,
+     "total_neto_aprobado": "1500.00"
+    },
+    "orden_liquidaciones": [
+     1,
+     2
+    ],
+    "estados_siniestros": {
+     "1": "LIQUIDADO",
+     "2": "LIQUIDADO"
+    },
+    "liquidaciones": {
+     "1": {
+      "estado": "APROBADA",
+      "motivo": "LIQUIDACION_AUTOMATICA",
+      "base": "1000.00",
+      "deducible": "100.00",
+      "cubierto": "900.00",
+      "retencion": "0.00",
+      "neto": "900.00",
+      "observaciones": null,
+      "fecha_liquidacion": "2026-03-31",
+      "reclamado": "1000.00"
+     },
+     "2": {
+      "estado": "APROBADA",
+      "motivo": "LIQUIDACION_AUTOMATICA",
+      "base": "1000.00",
+      "deducible": "100.00",
+      "cubierto": "600.00",
+      "retencion": "0.00",
+      "neto": "600.00",
+      "observaciones": "TOPE_SUMA_ASEGURADA",
+      "fecha_liquidacion": "2026-03-31",
+      "reclamado": "1000.00"
+     }
+    },
+    "commits": 1,
+    "log_niveles": [
+     "INFO",
+     "INFO",
+     "INFO",
+     "INFO"
+    ]
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:541-558,645-651"
+  },
+  {
+   "id": "E80",
+   "regla": "R-018",
+   "descripcion": "Lote: tras 3 liquidados previos en ventana, el 4to recibe penalizacion (810)",
+   "entrada": {
+    "modo": "lote",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     },
+     {
+      "id": 2,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-11",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     },
+     {
+      "id": 3,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-12",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     },
+     {
+      "id": 4,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-13",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "resumen": {
+     "procesados": 4,
+     "liquidados": 4,
+     "rechazados": 0,
+     "pendientes": 0,
+     "errores": 0,
+     "total_neto_aprobado": "3510.00"
+    },
+    "orden_liquidaciones": [
+     1,
+     2,
+     3,
+     4
+    ],
+    "estados_siniestros": {
+     "1": "LIQUIDADO",
+     "2": "LIQUIDADO",
+     "3": "LIQUIDADO",
+     "4": "LIQUIDADO"
+    },
+    "liquidaciones": {
+     "1": {
+      "estado": "APROBADA",
+      "motivo": "LIQUIDACION_AUTOMATICA",
+      "base": "1000.00",
+      "deducible": "100.00",
+      "cubierto": "900.00",
+      "retencion": "0.00",
+      "neto": "900.00",
+      "observaciones": null,
+      "fecha_liquidacion": "2026-03-31",
+      "reclamado": "1000.00"
+     },
+     "2": {
+      "estado": "APROBADA",
+      "motivo": "LIQUIDACION_AUTOMATICA",
+      "base": "1000.00",
+      "deducible": "100.00",
+      "cubierto": "900.00",
+      "retencion": "0.00",
+      "neto": "900.00",
+      "observaciones": null,
+      "fecha_liquidacion": "2026-03-31",
+      "reclamado": "1000.00"
+     },
+     "3": {
+      "estado": "APROBADA",
+      "motivo": "LIQUIDACION_AUTOMATICA",
+      "base": "1000.00",
+      "deducible": "100.00",
+      "cubierto": "900.00",
+      "retencion": "0.00",
+      "neto": "900.00",
+      "observaciones": null,
+      "fecha_liquidacion": "2026-03-31",
+      "reclamado": "1000.00"
+     },
+     "4": {
+      "estado": "APROBADA",
+      "motivo": "LIQUIDACION_AUTOMATICA",
+      "base": "1000.00",
+      "deducible": "100.00",
+      "cubierto": "810.00",
+      "retencion": "0.00",
+      "neto": "810.00",
+      "observaciones": "PENALIZACION_SINIESTRALIDAD",
+      "fecha_liquidacion": "2026-03-31",
+      "reclamado": "1000.00"
+     }
+    },
+    "commits": 1,
+    "log_niveles": [
+     "INFO",
+     "INFO",
+     "INFO",
+     "INFO",
+     "INFO",
+     "INFO"
+    ]
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:521-533,645-651"
+  },
+  {
+   "id": "E81",
+   "regla": "R-029",
+   "descripcion": "Aislamiento: un siniestro con error cuenta como error y el lote continua; sigue REGISTRADO",
+   "entrada": {
+    "modo": "lote",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     },
+     {
+      "id": 2,
+      "poliza_id": 999,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     },
+     {
+      "id": 3,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "resumen": {
+     "procesados": 3,
+     "liquidados": 2,
+     "rechazados": 0,
+     "pendientes": 0,
+     "errores": 1,
+     "total_neto_aprobado": "1800.00"
+    },
+    "orden_liquidaciones": [
+     1,
+     3
+    ],
+    "estados_siniestros": {
+     "1": "LIQUIDADO",
+     "2": "REGISTRADO",
+     "3": "LIQUIDADO"
+    },
+    "liquidaciones": {
+     "1": {
+      "estado": "APROBADA",
+      "motivo": "LIQUIDACION_AUTOMATICA",
+      "base": "1000.00",
+      "deducible": "100.00",
+      "cubierto": "900.00",
+      "retencion": "0.00",
+      "neto": "900.00",
+      "observaciones": null,
+      "fecha_liquidacion": "2026-03-31",
+      "reclamado": "1000.00"
+     },
+     "3": {
+      "estado": "APROBADA",
+      "motivo": "LIQUIDACION_AUTOMATICA",
+      "base": "1000.00",
+      "deducible": "100.00",
+      "cubierto": "900.00",
+      "retencion": "0.00",
+      "neto": "900.00",
+      "observaciones": null,
+      "fecha_liquidacion": "2026-03-31",
+      "reclamado": "1000.00"
+     }
+    },
+    "commits": 1,
+    "log_niveles": [
+     "INFO",
+     "INFO",
+     "ERROR",
+     "INFO",
+     "INFO"
+    ]
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:649-676"
+  },
+  {
+   "id": "E82",
+   "regla": "R-031",
+   "descripcion": "Lote: un unico COMMIT al final y bitacora INFO inicio/fin (+1 INFO por resultado)",
+   "entrada": {
+    "modo": "lote",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     },
+     {
+      "id": 2,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "resumen": {
+     "procesados": 2,
+     "liquidados": 2,
+     "rechazados": 0,
+     "pendientes": 0,
+     "errores": 0,
+     "total_neto_aprobado": "1800.00"
+    },
+    "orden_liquidaciones": [
+     1,
+     2
+    ],
+    "estados_siniestros": {
+     "1": "LIQUIDADO",
+     "2": "LIQUIDADO"
+    },
+    "liquidaciones": {
+     "1": {
+      "estado": "APROBADA",
+      "motivo": "LIQUIDACION_AUTOMATICA",
+      "base": "1000.00",
+      "deducible": "100.00",
+      "cubierto": "900.00",
+      "retencion": "0.00",
+      "neto": "900.00",
+      "observaciones": null,
+      "fecha_liquidacion": "2026-03-31",
+      "reclamado": "1000.00"
+     },
+     "2": {
+      "estado": "APROBADA",
+      "motivo": "LIQUIDACION_AUTOMATICA",
+      "base": "1000.00",
+      "deducible": "100.00",
+      "cubierto": "900.00",
+      "retencion": "0.00",
+      "neto": "900.00",
+      "observaciones": null,
+      "fecha_liquidacion": "2026-03-31",
+      "reclamado": "1000.00"
+     }
+    },
+    "commits": 1,
+    "log_niveles": [
+     "INFO",
+     "INFO",
+     "INFO",
+     "INFO"
+    ]
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:642-643,679-685,293-295"
+  },
+  {
+   "id": "E83",
+   "regla": "R-030",
+   "descripcion": "Procesados cuenta todos, incluidos rechazados y pendientes (3 de 3)",
+   "entrada": {
+    "modo": "lote",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "500000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "100000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     },
+     {
+      "id": 2,
+      "poliza_id": 101,
+      "cobertura": "OTRA",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     },
+     {
+      "id": 3,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "51120.42",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "resumen": {
+     "procesados": 3,
+     "liquidados": 1,
+     "rechazados": 1,
+     "pendientes": 1,
+     "errores": 0,
+     "total_neto_aprobado": "900.00"
+    },
+    "orden_liquidaciones": [
+     1,
+     2,
+     3
+    ],
+    "estados_siniestros": {
+     "1": "LIQUIDADO",
+     "2": "RECHAZADO",
+     "3": "PENDIENTE_REVISION"
+    },
+    "liquidaciones": {
+     "1": {
+      "estado": "APROBADA",
+      "motivo": "LIQUIDACION_AUTOMATICA",
+      "base": "1000.00",
+      "deducible": "100.00",
+      "cubierto": "900.00",
+      "retencion": "0.00",
+      "neto": "900.00",
+      "observaciones": null,
+      "fecha_liquidacion": "2026-03-31",
+      "reclamado": "1000.00"
+     },
+     "2": {
+      "estado": "RECHAZADA",
+      "motivo": "COBERTURA_NO_CONTRATADA",
+      "base": "0.00",
+      "deducible": "0.00",
+      "cubierto": "0.00",
+      "retencion": "0.00",
+      "neto": "0.00",
+      "observaciones": null,
+      "fecha_liquidacion": "2026-03-31",
+      "reclamado": "1000.00"
+     },
+     "3": {
+      "estado": "PENDIENTE_APROBACION",
+      "motivo": "SUPERA_TOPE_AUTOMATICO",
+      "base": "51120.42",
+      "deducible": "100.00",
+      "cubierto": "51020.42",
+      "retencion": "1020.41",
+      "neto": "50000.01",
+      "observaciones": "RETENCION_APLICADA",
+      "fecha_liquidacion": "2026-03-31",
+      "reclamado": "51120.42"
+     }
+    },
+    "commits": 1,
+    "log_niveles": [
+     "INFO",
+     "INFO",
+     "INFO",
+     "INFO",
+     "INFO"
+    ]
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:646"
+  },
+  {
+   "id": "E84",
+   "regla": "R-036",
+   "descripcion": "Mapeo RECHAZADA => RECHAZADO sigue igual (mejora PO solo agrega error ante estado desconocido)",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "CANCELADA",
+      "suma_asegurada": "100000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "50000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "1000",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "RECHAZADA",
+    "motivo": "POLIZA_NO_VIGENTE",
+    "base": "0.00",
+    "deducible": "0.00",
+    "cubierto": "0.00",
+    "retencion": "0.00",
+    "neto": "0.00",
+    "observaciones": null,
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "1000.00",
+    "estado_siniestro": "RECHAZADO"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:283-287; reglas_limpias R-036"
+  },
+  {
+   "id": "E85",
+   "regla": "R-036",
+   "descripcion": "Mapeo PENDIENTE_APROBACION => PENDIENTE_REVISION",
+   "entrada": {
+    "modo": "liquidar",
+    "siniestro_id": 1,
+    "fecha_proceso": "2026-03-31",
+    "parametros": {
+     "DIAS_MAX_DENUNCIA": 30,
+     "DIAS_MAX_DENUNCIA_VIDA": 365,
+     "DEDUCIBLE_MINIMO": 100,
+     "PCT_DESCUENTO_DED_VIP": 50,
+     "TOLERANCIA_MORA_VIP": 500,
+     "MAX_SINIESTROS_ANUAL": 3,
+     "PCT_PENALIZACION_SINIEST": 10,
+     "UMBRAL_RETENCION": 10000,
+     "TASA_RETENCION": 2,
+     "TOPE_AUTO_APROBACION": 50000,
+     "DIAS_ALERTA_FRAUDE": 15,
+     "PCT_ALERTA_FRAUDE": 80,
+     "FACTOR_INFLACION": 1.035,
+     "TASA_IVA": 19,
+     "VERSION_MOTOR": null
+    },
+    "clientes": [
+     {
+      "id": 1,
+      "nombre": "ANA TORRES",
+      "categoria": "ESTANDAR"
+     }
+    ],
+    "polizas": [
+     {
+      "id": 101,
+      "numero": "AUTO-0001",
+      "cliente_id": 1,
+      "ramo": "AUTO",
+      "inicio": "2025-01-01",
+      "fin": "2026-12-31",
+      "estado": "VIGENTE",
+      "suma_asegurada": "200000",
+      "deducible_tipo": "FIJO",
+      "deducible_valor": "100",
+      "prima_pendiente": "0"
+     }
+    ],
+    "coberturas": [
+     {
+      "poliza_id": 101,
+      "cod": "COB",
+      "limite": "100000",
+      "porcentaje": "100",
+      "carencia": 0
+     }
+    ],
+    "siniestros": [
+     {
+      "id": 1,
+      "poliza_id": 101,
+      "cobertura": "COB",
+      "ocurrencia": "2026-02-10",
+      "denuncia": "2026-02-12",
+      "monto": "51120.42",
+      "estado": "REGISTRADO"
+     }
+    ],
+    "liquidaciones_previas": []
+   },
+   "esperado": {
+    "estado": "PENDIENTE_APROBACION",
+    "motivo": "SUPERA_TOPE_AUTOMATICO",
+    "base": "51120.42",
+    "deducible": "100.00",
+    "cubierto": "51020.42",
+    "retencion": "1020.41",
+    "neto": "50000.01",
+    "observaciones": "RETENCION_APLICADA",
+    "fecha_liquidacion": "2026-03-31",
+    "reclamado": "51120.42",
+    "estado_siniestro": "PENDIENTE_REVISION"
+   },
+   "fuente_esperado": "lectura_codigo",
+   "cita": "04_pkg_liquidacion_siniestros_body.sql:283-287; reglas_limpias R-036"
+  }
+ ]
+}

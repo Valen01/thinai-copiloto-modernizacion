@@ -1,0 +1,122 @@
+{
+"reglas": [
+{
+"rule_id": "R-001", "tipo": "negocio", "categoria": "validacion",
+"descripcion": "Solo se liquida un siniestro que esté en estado REGISTRADO. Si tiene cualquier otro estado, el procedimiento lanza el error ORA-20001 con un mensaje que incluye el id y el estado actual; no escribe liquidación ni cambia el siniestro.",
+"condicion": "estado del siniestro distinto de REGISTRADO",
+"accion": "RAISE_APPLICATION_ERROR(-20001) y termina sin efectos",
+"parametros": {"codigo_error": -20001, "estado_requerido": "REGISTRADO", "operador": "<>"},
+"evidencia": [
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "IF v_sin.estado <> c_sin_registrado THEN"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "RAISE_APPLICATION_ERROR(-20001,"},
+{"archivo": "03_pkg_liquidacion_siniestros_spec.sql", "fragmento": "ORA-20001  El siniestro no se encuentra en estado REGISTRADO."}
+],
+"confianza": "alta", "preguntas_abiertas": ["¿Se espera poder reliquidar siniestros en PENDIENTE_REVISION tras la aprobación manual?"], "estado_revision": "pendiente"
+},
+{
+"rule_id": "R-002", "tipo": "negocio", "categoria": "efecto_secundario",
+"descripcion": "Al liquidar, el siniestro se lee con bloqueo de fila (FOR UPDATE); luego se leen la póliza del siniestro y el cliente de la póliza. Si alguno no existe se propaga NO_DATA_FOUND (no se rechaza con motivo de negocio).",
+"condicion": "inicio de pr_liquidar_siniestro",
+"accion": "SELECT ... FOR UPDATE del siniestro; SELECT de póliza y cliente",
+"parametros": {},
+"evidencia": [
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "FOR UPDATE;"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "SELECT * INTO v_pol FROM ls_polizas  WHERE poliza_id  = v_sin.poliza_id;"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "SELECT * INTO v_cli FROM ls_clientes WHERE cliente_id = v_pol.cliente_id;"},
+{"archivo": "03_pkg_liquidacion_siniestros_spec.sql", "fragmento": "NO_DATA_FOUND  El siniestro, la poliza o el cliente no existen."}
+],
+"confianza": "alta", "preguntas_abiertas": ["¿Un siniestro sin póliza o cliente debe quedar como error de lote (como hoy) o rechazado?"], "estado_revision": "pendiente"
+},
+{
+"rule_id": "R-003", "tipo": "negocio", "categoria": "error",
+"descripcion": "Los parámetros de negocio se leen de LS_PARAMETROS por código (columna valor numérico). Si el código no existe se lanza ORA-20010 'Parametro no definido: <código>'. Los parámetros se consultan de forma perezosa, en el punto donde se usan, salvo FACTOR_INFLACION (ver R-004).",
+"condicion": "parámetro inexistente",
+"accion": "RAISE_APPLICATION_ERROR(-20010)",
+"parametros": {"codigo_error": -20010},
+"evidencia": [
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "SELECT valor_numerico"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "WHEN NO_DATA_FOUND THEN", "ocurrencia": 1},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "RAISE_APPLICATION_ERROR(-20010, 'Parametro no definido: ' || p_cod_parametro);"},
+{"archivo": "03_pkg_liquidacion_siniestros_spec.sql", "fragmento": "ORA-20010  Parametro de negocio inexistente en LS_PARAMETROS."}
+],
+"confianza": "alta", "preguntas_abiertas": [], "estado_revision": "pendiente"
+},
+{
+"rule_id": "R-004", "tipo": "tecnico", "categoria": "efecto_secundario",
+"descripcion": "FACTOR_INFLACION se lee al inicio de cada liquidación, antes de cualquier validación, pero la variable no se usa después en pr_liquidar_siniestro. Efecto real: si el parámetro falta, TODO siniestro falla con ORA-20010 aunque fuera a rechazarse.",
+"condicion": "siempre, tras cargar siniestro/póliza/cliente",
+"accion": "v_factor_inflacion := fn_param_num('FACTOR_INFLACION')",
+"parametros": {"parametro": "FACTOR_INFLACION", "valor": 1.035},
+"evidencia": [
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "v_factor_inflacion := fn_param_num('FACTOR_INFLACION');"},
+{"archivo": "02_parametros.sql", "fragmento": "('FACTOR_INFLACION', 1.035,"}
+],
+"confianza": "alta", "preguntas_abiertas": ["¿Es intencional leer el factor sin usarlo?"], "estado_revision": "pendiente"
+},
+{
+"rule_id": "R-005", "tipo": "negocio", "categoria": "orden",
+"descripcion": "Orden de evaluación: póliza vigente, vigencia, plazo de denuncia, cobertura contratada, carencia, mora, y luego cálculo (bajo deducible, suma asegurada agotada). El primer fallo registra el rechazo y termina (RETURN); los siguientes no se evalúan, por lo que el motivo reportado es el del primer control que falla.",
+"condicion": "siempre",
+"accion": "cadena de controles con salida anticipada",
+"parametros": {"orden": ["POLIZA_NO_VIGENTE", "FUERA_DE_VIGENCIA", "DENUNCIA_EXTEMPORANEA", "COBERTURA_NO_CONTRATADA", "EN_PERIODO_CARENCIA", "PRIMA_EN_MORA", "BAJO_DEDUCIBLE", "SUMA_ASEGURADA_AGOTADA"]},
+"evidencia_ordenada": true,
+"evidencia": [
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "pr_rechazar(v_sin, p_fecha_proceso, 'POLIZA_NO_VIGENTE');"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "pr_rechazar(v_sin, p_fecha_proceso, 'FUERA_DE_VIGENCIA');"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "pr_rechazar(v_sin, p_fecha_proceso, 'DENUNCIA_EXTEMPORANEA');"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "pr_rechazar(v_sin, p_fecha_proceso, 'COBERTURA_NO_CONTRATADA');"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "pr_rechazar(v_sin, p_fecha_proceso, 'EN_PERIODO_CARENCIA');"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "pr_rechazar(v_sin, p_fecha_proceso, 'PRIMA_EN_MORA', v_observaciones);"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "pr_rechazar(v_sin, p_fecha_proceso, 'BAJO_DEDUCIBLE', v_observaciones);"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "pr_rechazar(v_sin, p_fecha_proceso, 'SUMA_ASEGURADA_AGOTADA', v_observaciones);"}
+],
+"confianza": "alta", "preguntas_abiertas": ["¿El orden de prioridad de motivos de rechazo es requisito de negocio (afecta reportes)?"], "estado_revision": "pendiente"
+},
+{
+"rule_id": "R-006", "tipo": "negocio", "categoria": "validacion",
+"descripcion": "Solo se liquidan pólizas en estado VIGENTE. Cualquier otro estado (CANCELADA, SUSPENDIDA) se rechaza con POLIZA_NO_VIGENTE y observaciones vacías.",
+"condicion": "estado de póliza <> 'VIGENTE'",
+"accion": "pr_rechazar(... 'POLIZA_NO_VIGENTE') y RETURN",
+"parametros": {"estado_requerido": "VIGENTE", "motivo": "POLIZA_NO_VIGENTE"},
+"evidencia": [
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "IF v_pol.estado <> c_poliza_vigente THEN"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "c_poliza_vigente  CONSTANT VARCHAR2(12)  := 'VIGENTE';"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "pr_rechazar(v_sin, p_fecha_proceso, 'POLIZA_NO_VIGENTE');"}
+],
+"confianza": "alta", "preguntas_abiertas": [], "estado_revision": "pendiente"
+},
+{
+"rule_id": "R-007", "tipo": "negocio", "categoria": "fechas",
+"descripcion": "La fecha de ocurrencia debe caer en [fecha_inicio, fecha_fin] de la póliza, ambos extremos incluidos. Se rechaza si es estrictamente menor al inicio o estrictamente mayor al fin. La comparación no aplica TRUNC: si las fechas llevaran hora podría afectar el borde (no probado por ejecución).",
+"condicion": "ocurrencia < inicio OR ocurrencia > fin",
+"accion": "pr_rechazar(... 'FUERA_DE_VIGENCIA') y RETURN",
+"parametros": {"operador_inicio": "<", "operador_fin": ">", "extremos": "inclusivos"},
+"evidencia": [
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "IF v_sin.fecha_ocurrencia < v_pol.fecha_inicio"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "OR v_sin.fecha_ocurrencia > v_pol.fecha_fin"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "pr_rechazar(v_sin, p_fecha_proceso, 'FUERA_DE_VIGENCIA');"}
+],
+"confianza": "media", "preguntas_abiertas": ["¿Las fechas de póliza/siniestro pueden traer hora?"], "estado_revision": "pendiente"
+},
+{
+"rule_id": "R-008", "tipo": "negocio", "categoria": "validacion",
+"descripcion": "Plazo de denuncia: días = TRUNC(denuncia) - TRUNC(ocurrencia). El máximo es DIAS_MAX_DENUNCIA (30) y para ramo VIDA DIAS_MAX_DENUNCIA_VIDA (365). Se rechaza si días > máximo (estricto), es decir, el día límite es aceptado. Rechazo: DENUNCIA_EXTEMPORANEA.",
+"condicion": "dias_denuncia > máximo del ramo",
+"accion": "pr_rechazar(... 'DENUNCIA_EXTEMPORANEA') y RETURN",
+"parametros": {"dias_max": 30, "dias_max_vida": 365, "operador": ">"},
+"evidencia": [
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "v_dias_denuncia := TRUNC(v_sin.fecha_denuncia) - TRUNC(v_sin.fecha_ocurrencia);"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "IF v_pol.ramo = c_ramo_vida THEN"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "v_dias_max_denuncia := fn_param_num('DIAS_MAX_DENUNCIA_VIDA');"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "v_dias_max_denuncia := fn_param_num('DIAS_MAX_DENUNCIA');"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "IF v_dias_denuncia > v_dias_max_denuncia THEN"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "pr_rechazar(v_sin, p_fecha_proceso, 'DENUNCIA_EXTEMPORANEA');"},
+{"archivo": "02_parametros.sql", "fragmento": "('DIAS_MAX_DENUNCIA', 30,"},
+{"archivo": "02_parametros.sql", "fragmento": "('DIAS_MAX_DENUNCIA_VIDA', 365,"}
+],
+"confianza": "alta", "preguntas_abiertas": ["¿Los días son calendario (como hoy) o hábiles?"], "estado_revision": "pendiente"
+}
+],
+"tecnicos": {},
+"glosario": {}
+}

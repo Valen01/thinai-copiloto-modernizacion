@@ -1,0 +1,166 @@
+0001: /*******************************************************************************
+0002:  * SISTEMA      : SIGSE - Sistema Integral de Gestion de Seguros
+0003:  * MODULO       : SINIESTROS
+0004:  * ARCHIVO      : 01_ddl_tablas.sql
+0005:  * DESCRIPCION  : Estructuras de datos (tablas, secuencias, indices) del
+0006:  *                modulo de liquidacion de siniestros.
+0007:  * BASE DE DATOS: Oracle 11gR2 o superior
+0008:  * -----------------------------------------------------------------------------
+0009:  * HISTORIAL DE CAMBIOS
+0010:  * Fecha       Autor        Ticket     Descripcion
+0011:  * ----------  -----------  ---------  -----------------------------------------
+0012:  * 2009-03-14  JRAMIREZ     SIN-0001   Version inicial.
+0013:  * 2009-11-02  JRAMIREZ     SIN-0042   Se agrega LS_TMP_CALCULO_2009 para
+0014:  *                                     recalculo de reservas tecnicas.
+0015:  * 2013-06-20  MCASTRO      SIN-0310   Se agrega categoria de cliente (VIP).
+0016:  * 2017-02-08  LORTEGA      SIN-0577   Se agrega periodo de carencia por
+0017:  *                                     cobertura.
+0018:  * 2021-09-30  PVARGAS      SIN-0912   Se agrega columna OBSERVACIONES a
+0019:  *                                     liquidaciones (trazabilidad de ajustes).
+0020:  ******************************************************************************/
+0021: 
+0022: -------------------------------------------------------------------------------
+0023: -- LS_CLIENTES : Asegurados / tomadores de polizas.
+0024: --   CATEGORIA : 'VIP' | 'PREFERENTE' | 'ESTANDAR'
+0025: -------------------------------------------------------------------------------
+0026: CREATE TABLE ls_clientes (
+0027:     cliente_id      NUMBER(10)      NOT NULL,
+0028:     nombre          VARCHAR2(120)   NOT NULL,
+0029:     tipo_documento  VARCHAR2(5)     NOT NULL,
+0030:     num_documento   VARCHAR2(20)    NOT NULL,
+0031:     categoria       VARCHAR2(15)    DEFAULT 'ESTANDAR' NOT NULL,
+0032:     fecha_alta      DATE            NOT NULL,
+0033:     CONSTRAINT pk_ls_clientes PRIMARY KEY (cliente_id),
+0034:     CONSTRAINT ck_ls_cli_categoria CHECK (categoria IN ('VIP','PREFERENTE','ESTANDAR'))
+0035: );
+0036: 
+0037: -------------------------------------------------------------------------------
+0038: -- LS_POLIZAS : Contratos de seguro.
+0039: --   RAMO           : 'AUTO' | 'HOGAR' | 'SALUD' | 'VIDA'
+0040: --   ESTADO         : 'VIGENTE' | 'CANCELADA' | 'SUSPENDIDA'
+0041: --   DEDUCIBLE_TIPO : 'FIJO' (monto) | 'PORCENTAJE' (sobre monto base)
+0042: --   PRIMA_PENDIENTE: monto de prima vencida y no pagada (mora).
+0043: -------------------------------------------------------------------------------
+0044: CREATE TABLE ls_polizas (
+0045:     poliza_id        NUMBER(10)     NOT NULL,
+0046:     numero_poliza    VARCHAR2(20)   NOT NULL,
+0047:     cliente_id       NUMBER(10)     NOT NULL,
+0048:     ramo             VARCHAR2(10)   NOT NULL,
+0049:     fecha_inicio     DATE           NOT NULL,
+0050:     fecha_fin        DATE           NOT NULL,
+0051:     estado           VARCHAR2(12)   NOT NULL,
+0052:     suma_asegurada   NUMBER(14,2)   NOT NULL,
+0053:     deducible_tipo   VARCHAR2(10)   NOT NULL,
+0054:     deducible_valor  NUMBER(14,2)   DEFAULT 0 NOT NULL,
+0055:     prima_pendiente  NUMBER(14,2)   DEFAULT 0 NOT NULL,
+0056:     CONSTRAINT pk_ls_polizas PRIMARY KEY (poliza_id),
+0057:     CONSTRAINT uk_ls_pol_numero UNIQUE (numero_poliza),
+0058:     CONSTRAINT fk_ls_pol_cliente FOREIGN KEY (cliente_id) REFERENCES ls_clientes (cliente_id),
+0059:     CONSTRAINT ck_ls_pol_ramo CHECK (ramo IN ('AUTO','HOGAR','SALUD','VIDA')),
+0060:     CONSTRAINT ck_ls_pol_estado CHECK (estado IN ('VIGENTE','CANCELADA','SUSPENDIDA')),
+0061:     CONSTRAINT ck_ls_pol_ded_tipo CHECK (deducible_tipo IN ('FIJO','PORCENTAJE'))
+0062: );
+0063: 
+0064: -------------------------------------------------------------------------------
+0065: -- LS_COBERTURAS : Coberturas contratadas por poliza.
+0066: --   LIMITE_COBERTURA     : monto maximo indemnizable por evento.
+0067: --   PORCENTAJE_COBERTURA : % del monto (neto de deducible) que paga la cia.
+0068: --   DIAS_CARENCIA        : dias desde el inicio de la poliza durante los
+0069: --                          cuales la cobertura aun no esta activa.
+0070: -------------------------------------------------------------------------------
+0071: CREATE TABLE ls_coberturas (
+0072:     poliza_id             NUMBER(10)    NOT NULL,
+0073:     cod_cobertura         VARCHAR2(20)  NOT NULL,
+0074:     limite_cobertura      NUMBER(14,2)  NOT NULL,
+0075:     porcentaje_cobertura  NUMBER(5,2)   NOT NULL,
+0076:     dias_carencia         NUMBER(4)     DEFAULT 0 NOT NULL,
+0077:     CONSTRAINT pk_ls_coberturas PRIMARY KEY (poliza_id, cod_cobertura),
+0078:     CONSTRAINT fk_ls_cob_poliza FOREIGN KEY (poliza_id) REFERENCES ls_polizas (poliza_id)
+0079: );
+0080: 
+0081: -------------------------------------------------------------------------------
+0082: -- LS_SINIESTROS : Reclamos presentados por los asegurados.
+0083: --   ESTADO : 'REGISTRADO' | 'LIQUIDADO' | 'RECHAZADO' | 'PENDIENTE_REVISION'
+0084: -------------------------------------------------------------------------------
+0085: CREATE TABLE ls_siniestros (
+0086:     siniestro_id      NUMBER(10)     NOT NULL,
+0087:     poliza_id         NUMBER(10)     NOT NULL,
+0088:     cod_cobertura     VARCHAR2(20)   NOT NULL,
+0089:     fecha_ocurrencia  DATE           NOT NULL,
+0090:     fecha_denuncia    DATE           NOT NULL,
+0091:     monto_reclamado   NUMBER(14,2)   NOT NULL,
+0092:     estado            VARCHAR2(20)   DEFAULT 'REGISTRADO' NOT NULL,
+0093:     descripcion       VARCHAR2(400),
+0094:     CONSTRAINT pk_ls_siniestros PRIMARY KEY (siniestro_id),
+0095:     CONSTRAINT fk_ls_sin_poliza FOREIGN KEY (poliza_id) REFERENCES ls_polizas (poliza_id),
+0096:     CONSTRAINT ck_ls_sin_estado CHECK (estado IN ('REGISTRADO','LIQUIDADO','RECHAZADO','PENDIENTE_REVISION'))
+0097: );
+0098: 
+0099: CREATE INDEX ix_ls_sin_estado ON ls_siniestros (estado, fecha_denuncia);
+0100: CREATE INDEX ix_ls_sin_poliza ON ls_siniestros (poliza_id, fecha_ocurrencia);
+0101: 
+0102: -------------------------------------------------------------------------------
+0103: -- LS_LIQUIDACIONES : Resultado del calculo de indemnizacion por siniestro.
+0104: --   ESTADO : 'APROBADA' | 'RECHAZADA' | 'PENDIENTE_APROBACION'
+0105: --   MOTIVO : codigo de resultado (ver documentacion del paquete).
+0106: --   OBSERVACIONES : marcas de ajustes aplicados, separadas por ';'.
+0107: -------------------------------------------------------------------------------
+0108: CREATE TABLE ls_liquidaciones (
+0109:     liquidacion_id      NUMBER(12)     NOT NULL,
+0110:     siniestro_id        NUMBER(10)     NOT NULL,
+0111:     fecha_liquidacion   DATE           NOT NULL,
+0112:     monto_reclamado     NUMBER(14,2)   NOT NULL,
+0113:     monto_base          NUMBER(14,2)   DEFAULT 0 NOT NULL,
+0114:     monto_deducible     NUMBER(14,2)   DEFAULT 0 NOT NULL,
+0115:     monto_cubierto      NUMBER(14,2)   DEFAULT 0 NOT NULL,
+0116:     monto_retencion     NUMBER(14,2)   DEFAULT 0 NOT NULL,
+0117:     monto_neto          NUMBER(14,2)   DEFAULT 0 NOT NULL,
+0118:     estado              VARCHAR2(25)   NOT NULL,
+0119:     motivo              VARCHAR2(40)   NOT NULL,
+0120:     observaciones       VARCHAR2(400),
+0121:     usuario_proceso     VARCHAR2(30)   DEFAULT USER NOT NULL,
+0122:     CONSTRAINT pk_ls_liquidaciones PRIMARY KEY (liquidacion_id),
+0123:     CONSTRAINT fk_ls_liq_siniestro FOREIGN KEY (siniestro_id) REFERENCES ls_siniestros (siniestro_id),
+0124:     CONSTRAINT ck_ls_liq_estado CHECK (estado IN ('APROBADA','RECHAZADA','PENDIENTE_APROBACION'))
+0125: );
+0126: 
+0127: CREATE INDEX ix_ls_liq_siniestro ON ls_liquidaciones (siniestro_id);
+0128: 
+0129: -------------------------------------------------------------------------------
+0130: -- LS_PARAMETROS : Parametrizacion del negocio (valores configurables).
+0131: -------------------------------------------------------------------------------
+0132: CREATE TABLE ls_parametros (
+0133:     cod_parametro   VARCHAR2(40)   NOT NULL,
+0134:     valor_numerico  NUMBER(14,4),
+0135:     valor_texto     VARCHAR2(200),
+0136:     descripcion     VARCHAR2(200),
+0137:     CONSTRAINT pk_ls_parametros PRIMARY KEY (cod_parametro)
+0138: );
+0139: 
+0140: -------------------------------------------------------------------------------
+0141: -- LS_LOG_PROCESO : Bitacora de ejecucion del proceso batch.
+0142: -------------------------------------------------------------------------------
+0143: CREATE TABLE ls_log_proceso (
+0144:     log_id        NUMBER(12)      NOT NULL,
+0145:     fecha_log     DATE            DEFAULT SYSDATE NOT NULL,
+0146:     nivel         VARCHAR2(10)    NOT NULL,
+0147:     siniestro_id  NUMBER(10),
+0148:     mensaje       VARCHAR2(1000),
+0149:     CONSTRAINT pk_ls_log_proceso PRIMARY KEY (log_id)
+0150: );
+0151: 
+0152: -------------------------------------------------------------------------------
+0153: -- LS_TMP_CALCULO_2009 : Tabla de trabajo para recalculo de reservas tecnicas.
+0154: -------------------------------------------------------------------------------
+0155: CREATE TABLE ls_tmp_calculo_2009 (
+0156:     siniestro_id     NUMBER(10),
+0157:     reserva_tecnica  NUMBER(14,2),
+0158:     fecha_calculo    DATE
+0159: );
+0160: 
+0161: -------------------------------------------------------------------------------
+0162: -- Secuencias
+0163: -------------------------------------------------------------------------------
+0164: CREATE SEQUENCE seq_ls_liquidacion START WITH 1 INCREMENT BY 1 NOCACHE;
+0165: CREATE SEQUENCE seq_ls_log         START WITH 1 INCREMENT BY 1 NOCACHE;
+0166: 

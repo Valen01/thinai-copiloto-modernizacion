@@ -1,0 +1,14 @@
+# Tenant B: mismos codigos, otros topes (configuracion por tenant)
+DIAS_MAX_DENUNCIA|15||Plazo maximo de denuncia (dias) - ramos generales
+DIAS_MAX_DENUNCIA_VIDA|365||Plazo maximo de denuncia (dias) - ramo VIDA
+DEDUCIBLE_MINIMO|50||Deducible minimo cuando el deducible es porcentual
+PCT_DESCUENTO_DED_VIP|50||% de descuento sobre el deducible para clientes VIP
+TOLERANCIA_MORA_VIP|500||Monto de prima pendiente tolerado a clientes VIP
+MAX_SINIESTROS_ANUAL|3||Cantidad de siniestros liquidados en 365 dias que activa penalizacion
+PCT_PENALIZACION_SINIEST|10||% de reduccion por alta siniestralidad
+UMBRAL_RETENCION|1000||Monto cubierto a partir del cual se aplica retencion
+TASA_RETENCION|5||% de retencion impositiva
+TOPE_AUTO_APROBACION|2000||Monto neto maximo para aprobacion automatica
+DIAS_ALERTA_FRAUDE|15||Dias desde inicio de poliza para evaluar alerta de fraude
+PCT_ALERTA_FRAUDE|80||% del limite de cobertura que activa alerta de fraude
+FACTOR_INFLACION|1.035||Factor de ajuste inflacionario de reservas

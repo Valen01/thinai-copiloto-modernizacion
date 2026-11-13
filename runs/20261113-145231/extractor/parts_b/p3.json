@@ -1,0 +1,123 @@
+{
+"reglas": [
+{
+"rule_id": "R-017", "tipo": "tecnico", "categoria": "error",
+"descripcion": "Código inalcanzable: tras rechazar cuando cubierto <= 0, la comprobación cubierto < 0 que lanzaría e_monto_invalido nunca puede cumplirse. La excepción no tiene manejador propio.",
+"condicion": "cubierto < 0 (imposible tras R-016)",
+"accion": "poner cubierto en 0 y RAISE e_monto_invalido",
+"parametros": {},
+"evidencia_ordenada": true,
+"evidencia": [
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "IF v_cubierto <= 0 THEN"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "IF v_cubierto < 0 THEN"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "RAISE e_monto_invalido;"}
+],
+"confianza": "alta", "preguntas_abiertas": [], "estado_revision": "pendiente"
+},
+{
+"rule_id": "R-018", "tipo": "negocio", "categoria": "calculo",
+"descripcion": "Conteo de siniestralidad: cuenta siniestros de la MISMA póliza, distintos del actual, en estado LIQUIDADO (no cuentan PENDIENTE_REVISION ni RECHAZADO), con ocurrencia >= (ocurrencia actual - 365 días) y < ocurrencia actual. Se basa en el estado del siniestro al momento, por lo que los liquidados antes dentro del mismo lote cuentan (el orden por id importa).",
+"condicion": "siempre, tras calcular el cubierto",
+"accion": "v_cant_siniestros := COUNT(*)",
+"parametros": {"ventana_dias": 365, "limite_inferior": ">= inclusive", "limite_superior": "< exclusive", "estado_contado": "LIQUIDADO"},
+"evidencia": [
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "AND s.siniestro_id     <> v_sin.siniestro_id"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "AND s.estado            = c_sin_liquidado"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "AND s.fecha_ocurrencia >= v_sin.fecha_ocurrencia - 365"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "AND s.fecha_ocurrencia <  v_sin.fecha_ocurrencia;"}
+],
+"confianza": "alta", "preguntas_abiertas": ["¿Deben contar también los PENDIENTE_REVISION?"], "estado_revision": "pendiente"
+},
+{
+"rule_id": "R-019", "tipo": "negocio", "categoria": "calculo",
+"descripcion": "Penalización por siniestralidad: si la cantidad contada es >= MAX_SINIESTROS_ANUAL (3), el cubierto se reduce PCT_PENALIZACION_SINIEST (10) %: ROUND(cubierto * 90 / 100, 2), con marca PENALIZACION_SINIESTRALIDAD. Se aplica antes del tope de suma asegurada y de la retención.",
+"condicion": "conteo >= 3",
+"accion": "cubierto := ROUND(cubierto * (100 - 10) / 100, 2)",
+"parametros": {"max_siniestros": 3, "pct_penalizacion": 10, "operador": ">="},
+"evidencia": [
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "IF v_cant_siniestros >= fn_param_num('MAX_SINIESTROS_ANUAL') THEN"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "v_cubierto := ROUND(v_cubierto * (100 - fn_param_num('PCT_PENALIZACION_SINIEST')) / 100, 2);"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "pr_agregar_obs(v_observaciones, 'PENALIZACION_SINIESTRALIDAD');"},
+{"archivo": "02_parametros.sql", "fragmento": "('MAX_SINIESTROS_ANUAL', 3,"},
+{"archivo": "02_parametros.sql", "fragmento": "('PCT_PENALIZACION_SINIEST', 10,"}
+],
+"confianza": "alta", "preguntas_abiertas": [], "estado_revision": "pendiente"
+},
+{
+"rule_id": "R-020", "tipo": "negocio", "categoria": "calculo",
+"descripcion": "Suma asegurada remanente = suma asegurada de la póliza - suma de monto_cubierto de todas las liquidaciones APROBADA o PENDIENTE_APROBACION de los siniestros de esa póliza (sin límite de fecha; incluye las del mismo lote ya procesadas). Las RECHAZADAS no cuentan.",
+"condicion": "siempre, tras la penalización",
+"accion": "v_suma_remanente := suma_asegurada - total_indemnizado",
+"parametros": {"estados_sumados": ["APROBADA", "PENDIENTE_APROBACION"]},
+"evidencia": [
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "SELECT NVL(SUM(l.monto_cubierto), 0)"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "AND l.estado IN (c_liq_aprobada, c_liq_pend_aprob);"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "v_suma_remanente := v_pol.suma_asegurada - v_total_indemnizado;"}
+],
+"confianza": "alta", "preguntas_abiertas": ["¿La suma asegurada se repone por año/vigencia?"], "estado_revision": "pendiente"
+},
+{
+"rule_id": "R-021", "tipo": "negocio", "categoria": "validacion",
+"descripcion": "Si el remanente es <= 0 se rechaza con SUMA_ASEGURADA_AGOTADA (importes cero, con observaciones acumuladas). Si el cubierto es estrictamente mayor al remanente, el cubierto se topa al remanente y se marca TOPE_SUMA_ASEGURADA.",
+"condicion": "remanente <= 0; o cubierto > remanente",
+"accion": "rechazo o tope del cubierto",
+"parametros": {"operador_agotada": "<=", "operador_tope": ">"},
+"evidencia_ordenada": true,
+"evidencia": [
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "IF v_suma_remanente <= 0 THEN"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "pr_rechazar(v_sin, p_fecha_proceso, 'SUMA_ASEGURADA_AGOTADA', v_observaciones);"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "IF v_cubierto > v_suma_remanente THEN"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "v_cubierto := v_suma_remanente;"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "pr_agregar_obs(v_observaciones, 'TOPE_SUMA_ASEGURADA');"}
+],
+"confianza": "alta", "preguntas_abiertas": [], "estado_revision": "pendiente"
+},
+{
+"rule_id": "R-022", "tipo": "negocio", "categoria": "calculo",
+"descripcion": "Retención impositiva: si el ramo no es VIDA y el cubierto final (tras penalización y tope) es estrictamente mayor a UMBRAL_RETENCION (10000), retención = ROUND(cubierto * TASA_RETENCION(2) / 100, 2) y marca RETENCION_APLICADA; si no, retención 0. Con cubierto exactamente 10000 no se retiene. VIDA nunca retiene.",
+"condicion": "ramo <> 'VIDA' AND cubierto > 10000",
+"accion": "v_retencion calculada o 0",
+"parametros": {"umbral": 10000, "tasa_pct": 2, "operador": ">", "ramo_excluido": "VIDA"},
+"evidencia": [
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "IF v_pol.ramo <> c_ramo_vida"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "AND v_cubierto > fn_param_num('UMBRAL_RETENCION')"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "v_retencion := ROUND(v_cubierto * fn_param_num('TASA_RETENCION') / 100, 2);"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "pr_agregar_obs(v_observaciones, 'RETENCION_APLICADA');"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "v_retencion := 0;"},
+{"archivo": "02_parametros.sql", "fragmento": "('UMBRAL_RETENCION', 10000,"},
+{"archivo": "02_parametros.sql", "fragmento": "('TASA_RETENCION', 2,"}
+],
+"confianza": "alta", "preguntas_abiertas": ["¿La retención es sobre el cubierto completo o solo el exceso del umbral?"], "estado_revision": "pendiente"
+},
+{
+"rule_id": "R-023", "tipo": "negocio", "categoria": "calculo",
+"descripcion": "Monto neto = cubierto - retención (sin más redondeo). El neto es el valor que se compara con el tope de aprobación automática.",
+"condicion": "siempre, tras la retención",
+"accion": "v_neto := v_cubierto - v_retencion",
+"parametros": {},
+"evidencia": [
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "v_neto := v_cubierto - v_retencion;"}
+],
+"confianza": "alta", "preguntas_abiertas": [], "estado_revision": "pendiente"
+},
+{
+"rule_id": "R-024", "tipo": "negocio", "categoria": "validacion",
+"descripcion": "Alerta de fraude: umbral = ROUND(limite_cobertura * PCT_ALERTA_FRAUDE(80) / 100, 2). Si los días desde inicio de póliza son <= DIAS_ALERTA_FRAUDE (15, inclusive) Y el monto RECLAMADO (no la base) es >= umbral, el estado es PENDIENTE_APROBACION con motivo SOSPECHA_FRAUDE. Los importes calculados se registran igual.",
+"condicion": "dias_desde_inicio <= 15 AND monto_reclamado >= umbral",
+"accion": "estado PENDIENTE_APROBACION / SOSPECHA_FRAUDE",
+"parametros": {"dias_alerta": 15, "pct_limite": 80, "operador_dias": "<=", "operador_monto": ">="},
+"evidencia": [
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "v_umbral_fraude := ROUND(v_cob.limite_cobertura * fn_param_num('PCT_ALERTA_FRAUDE') / 100, 2);"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "IF v_dias_desde_inicio <= fn_param_num('DIAS_ALERTA_FRAUDE')"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "AND v_sin.monto_reclamado >= v_umbral_fraude"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "v_estado_liq := c_liq_pend_aprob;", "ocurrencia": 1},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "v_motivo     := 'SOSPECHA_FRAUDE';"},
+{"archivo": "02_parametros.sql", "fragmento": "('DIAS_ALERTA_FRAUDE', 15,"},
+{"archivo": "02_parametros.sql", "fragmento": "('PCT_ALERTA_FRAUDE', 80,"}
+],
+"confianza": "alta", "preguntas_abiertas": ["¿Debe compararse contra el monto base en vez del reclamado?"], "estado_revision": "pendiente"
+}
+],
+"tecnicos": {},
+"glosario": {}
+}

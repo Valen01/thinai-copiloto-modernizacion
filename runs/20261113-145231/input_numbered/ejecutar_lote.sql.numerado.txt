@@ -1,0 +1,12 @@
+0001: /*******************************************************************************
+0002:  * ARCHIVO      : ejecutar_lote.sql
+0003:  * DESCRIPCION  : Ejecuta el proceso batch de liquidacion con fecha de corte
+0004:  *                31/03/2026 (fecha de referencia de los datos de prueba).
+0005:  ******************************************************************************/
+0006: SET SERVEROUTPUT ON SIZE UNLIMITED
+0007: 
+0008: BEGIN
+0009:     pkg_liquidacion_siniestros.pr_procesar_lote(p_fecha_proceso => DATE '2026-03-31');
+0010: END;
+0011: /
+0012: 

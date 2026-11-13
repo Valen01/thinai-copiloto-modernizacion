@@ -1,0 +1,1 @@
+{"reglas":[{"rule_id":"R-000","categoria":"validacion","descripcion":"x","condicion":"x","accion":"x","evidencia":[{"archivo":"02_parametros.sql","fragmento":"('DIAS_MAX_DENUNCIA', 30, NULL"}],"confianza":"alta","preguntas_abiertas":[],"estado_revision":"pendiente"}],"glosario":{}}

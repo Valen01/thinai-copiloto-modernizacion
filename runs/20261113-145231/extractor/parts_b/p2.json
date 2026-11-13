@@ -1,0 +1,124 @@
+{
+"reglas": [
+{
+"rule_id": "R-009", "tipo": "negocio", "categoria": "validacion",
+"descripcion": "La cobertura reclamada debe existir para la póliza (clave póliza + código de cobertura). Si no existe se rechaza con COBERTURA_NO_CONTRATADA. Esta consulta ocurre después de vigencia y denuncia.",
+"condicion": "no hay fila en ls_coberturas para (poliza, cobertura)",
+"accion": "pr_rechazar(... 'COBERTURA_NO_CONTRATADA') y RETURN",
+"parametros": {"motivo": "COBERTURA_NO_CONTRATADA"},
+"evidencia": [
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "AND cod_cobertura = v_sin.cod_cobertura;"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "WHEN NO_DATA_FOUND THEN", "ocurrencia": 2},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "pr_rechazar(v_sin, p_fecha_proceso, 'COBERTURA_NO_CONTRATADA');"}
+],
+"confianza": "alta", "preguntas_abiertas": [], "estado_revision": "pendiente"
+},
+{
+"rule_id": "R-010", "tipo": "negocio", "categoria": "fechas",
+"descripcion": "Carencia: días desde inicio de póliza = TRUNC(ocurrencia) - TRUNC(inicio). Se rechaza si es estrictamente menor a dias_carencia de la cobertura; con días iguales a la carencia la cobertura ya está activa. Esta variable se reutiliza luego para la alerta de fraude.",
+"condicion": "dias_desde_inicio < dias_carencia",
+"accion": "pr_rechazar(... 'EN_PERIODO_CARENCIA') y RETURN",
+"parametros": {"operador": "<", "campo": "dias_carencia"},
+"evidencia": [
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "v_dias_desde_inicio := TRUNC(v_sin.fecha_ocurrencia) - TRUNC(v_pol.fecha_inicio);"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "IF v_dias_desde_inicio < v_cob.dias_carencia THEN"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "pr_rechazar(v_sin, p_fecha_proceso, 'EN_PERIODO_CARENCIA');"}
+],
+"confianza": "alta", "preguntas_abiertas": [], "estado_revision": "pendiente"
+},
+{
+"rule_id": "R-011", "tipo": "negocio", "categoria": "validacion",
+"descripcion": "Morosidad: si la prima pendiente es > 0 se rechaza con PRIMA_EN_MORA, salvo que el cliente sea VIP y la deuda sea <= TOLERANCIA_MORA_VIP (500); en ese caso continúa y se agrega la marca TOLERANCIA_MORA_VIP. Con prima pendiente 0 no hay marca. En el rechazo se pasa v_observaciones, que en ese punto aún está vacía (NULL).",
+"condicion": "prima_pendiente > 0",
+"accion": "VIP y deuda <= 500: marca y sigue; si no, rechazo PRIMA_EN_MORA",
+"parametros": {"tolerancia_vip": 500, "operador_deuda": ">", "operador_tolerancia": "<="},
+"evidencia": [
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "IF v_pol.prima_pendiente > 0 THEN"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "v_tolerancia_mora := fn_param_num('TOLERANCIA_MORA_VIP');"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "IF v_cli.categoria = c_cat_vip"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "AND v_pol.prima_pendiente <= v_tolerancia_mora"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "pr_agregar_obs(v_observaciones, 'TOLERANCIA_MORA_VIP');"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "pr_rechazar(v_sin, p_fecha_proceso, 'PRIMA_EN_MORA', v_observaciones);"},
+{"archivo": "02_parametros.sql", "fragmento": "('TOLERANCIA_MORA_VIP', 500,"}
+],
+"confianza": "alta", "preguntas_abiertas": ["¿La tolerancia VIP es por póliza o acumulada por cliente?"], "estado_revision": "pendiente"
+},
+{
+"rule_id": "R-012", "tipo": "tecnico", "categoria": "efecto_secundario",
+"descripcion": "Código inalcanzable: el bloque que registra advertencia WARN en bitácora y cuenta pólizas SUSPENDIDA nunca se ejecuta, porque antes (R-006) toda póliza distinta de VIGENTE ya fue rechazada. En la práctica una póliza suspendida se rechaza sin log WARN.",
+"condicion": "póliza SUSPENDIDA tras superar el control de vigente (imposible)",
+"accion": "pr_log('WARN') y contador auxiliar (v_contador_aux no se usa después)",
+"parametros": {},
+"evidencia_ordenada": true,
+"evidencia": [
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "IF v_pol.estado <> c_poliza_vigente THEN"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "IF v_pol.estado = 'SUSPENDIDA' THEN"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "pr_log('WARN', v_sin.siniestro_id, 'Poliza suspendida: ' || v_pol.numero_poliza);"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "v_contador_aux := v_contador_aux + 1;"}
+],
+"confianza": "alta", "preguntas_abiertas": ["¿Debe registrarse el WARN para suspendidas o se rechazan siempre?"], "estado_revision": "pendiente"
+},
+{
+"rule_id": "R-013", "tipo": "negocio", "categoria": "calculo",
+"descripcion": "Monto base = el menor entre lo reclamado y el límite de la cobertura. Si el reclamado es estrictamente mayor al límite, la base es el límite y se agrega la marca LIMITE_COBERTURA; si es igual o menor, la base es el reclamado.",
+"condicion": "monto_reclamado > limite_cobertura",
+"accion": "monto_base := limite_cobertura + marca LIMITE_COBERTURA",
+"parametros": {"operador": ">"},
+"evidencia": [
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "IF v_sin.monto_reclamado > v_cob.limite_cobertura THEN"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "v_monto_base := v_cob.limite_cobertura;"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "pr_agregar_obs(v_observaciones, 'LIMITE_COBERTURA');"}
+],
+"confianza": "alta", "preguntas_abiertas": [], "estado_revision": "pendiente"
+},
+{
+"rule_id": "R-014", "tipo": "negocio", "categoria": "calculo",
+"descripcion": "Deducible: si el tipo de póliza es FIJO se usa el valor de la póliza tal cual (sin mínimo). Cualquier otro tipo (en la práctica PORCENTAJE, por el CHECK de la tabla) se calcula como ROUND(monto_base * valor / 100, 2) sobre el MONTO BASE (no sobre el reclamado); si el resultado es estrictamente menor a DEDUCIBLE_MINIMO (100) se sustituye por el mínimo y se marca DEDUCIBLE_MINIMO. El deducible fijo puede superar la base y dar cubierto negativo (ver R-016).",
+"condicion": "siempre; rama según deducible_tipo",
+"accion": "calcula deducible y marca DEDUCIBLE_MINIMO si aplica el mínimo",
+"parametros": {"deducible_minimo": 100, "operador_minimo": "<", "decimales": 2},
+"evidencia": [
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "IF p_poliza.deducible_tipo = 'FIJO' THEN"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "v_deducible := p_poliza.deducible_valor;"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "v_ded_minimo := fn_param_num('DEDUCIBLE_MINIMO');"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "v_deducible  := ROUND(p_monto_base * p_poliza.deducible_valor / 100, 2);"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "IF v_deducible < v_ded_minimo THEN"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "v_deducible := v_ded_minimo;"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "pr_agregar_obs(p_observaciones, 'DEDUCIBLE_MINIMO');"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "v_deducible := fn_calcular_deducible(v_pol, v_cli.categoria, v_monto_base, v_observaciones);"},
+{"archivo": "02_parametros.sql", "fragmento": "('DEDUCIBLE_MINIMO', 100,"}
+],
+"confianza": "alta", "preguntas_abiertas": ["¿El mínimo debería aplicar también al deducible fijo?"], "estado_revision": "pendiente"
+},
+{
+"rule_id": "R-015", "tipo": "negocio", "categoria": "calculo",
+"descripcion": "Beneficio VIP: si el cliente es VIP y el deducible resultante (tras el mínimo) es > 0, se reduce en PCT_DESCUENTO_DED_VIP (50) %: ROUND(deducible * (100 - 50) / 100, 2), y se marca DESCUENTO_VIP. Aplica tanto a deducible fijo como porcentual y se hace DESPUÉS del mínimo; con deducible 0 no hay descuento ni marca.",
+"condicion": "categoria = 'VIP' AND deducible > 0",
+"accion": "deducible reducido y marca DESCUENTO_VIP",
+"parametros": {"pct_descuento": 50, "operador": ">", "decimales": 2},
+"evidencia": [
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "IF p_categoria_cli = c_cat_vip AND v_deducible > 0 THEN"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "v_pct_desc_vip := fn_param_num('PCT_DESCUENTO_DED_VIP');"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "v_deducible    := ROUND(v_deducible * (100 - v_pct_desc_vip) / 100, 2);"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "pr_agregar_obs(p_observaciones, 'DESCUENTO_VIP');"},
+{"archivo": "02_parametros.sql", "fragmento": "('PCT_DESCUENTO_DED_VIP', 50,"}
+],
+"confianza": "alta", "preguntas_abiertas": [], "estado_revision": "pendiente"
+},
+{
+"rule_id": "R-016", "tipo": "negocio", "categoria": "calculo",
+"descripcion": "Monto cubierto = ROUND((monto_base - deducible) * porcentaje_cobertura / 100, 2). Si resulta <= 0 (incluye 0) se rechaza con BAJO_DEDUCIBLE: importes en cero pero con las observaciones acumuladas hasta ese punto.",
+"condicion": "cubierto <= 0",
+"accion": "pr_rechazar(... 'BAJO_DEDUCIBLE', observaciones) y RETURN",
+"parametros": {"operador": "<=", "valor": 0, "decimales": 2},
+"evidencia": [
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "v_cubierto := ROUND((v_monto_base - v_deducible) * v_cob.porcentaje_cobertura / 100, 2);"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "IF v_cubierto <= 0 THEN"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "pr_rechazar(v_sin, p_fecha_proceso, 'BAJO_DEDUCIBLE', v_observaciones);"}
+],
+"confianza": "alta", "preguntas_abiertas": [], "estado_revision": "pendiente"
+}
+],
+"tecnicos": {},
+"glosario": {}
+}

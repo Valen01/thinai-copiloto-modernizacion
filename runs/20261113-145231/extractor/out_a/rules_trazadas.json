@@ -1,0 +1,2705 @@
+{
+  "reglas": [
+    {
+      "rule_id": "R-001",
+      "tipo": "negocio",
+      "categoria": "error",
+      "descripcion": "Un siniestro solo se liquida si su estado es REGISTRADO. El siniestro se lee con bloqueo de fila (FOR UPDATE). Si el estado es otro, se lanza el error ORA-20001 con el id y el estado actual, y no se escribe nada.",
+      "condicion": "estado del siniestro distinto de REGISTRADO al inicio de pr_liquidar_siniestro",
+      "accion": "RAISE_APPLICATION_ERROR -20001",
+      "parametros": {
+        "codigo_error": -20001,
+        "operador": "<>",
+        "estado_esperado": "REGISTRADO"
+      },
+      "evidencia": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "FOR UPDATE;",
+          "lineas": [
+            365,
+            365
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "IF v_sin.estado <> c_sin_registrado THEN",
+          "lineas": [
+            367,
+            367
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "RAISE_APPLICATION_ERROR(-20001,",
+          "lineas": [
+            368,
+            368
+          ]
+        },
+        {
+          "archivo": "03_pkg_liquidacion_siniestros_spec.sql",
+          "fragmento": "PROCEDURE pr_liquidar_siniestro (",
+          "lineas": [
+            57,
+            57
+          ]
+        },
+        {
+          "archivo": "03_pkg_liquidacion_siniestros_spec.sql",
+          "fragmento": "ORA-20001 El siniestro no se encuentra en estado REGISTRADO.",
+          "lineas": [
+            53,
+            53
+          ]
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [
+        "¿Se espera reprocesar siniestros PENDIENTE_REVISION tras la aprobacion manual? Hoy darian ORA-20001."
+      ],
+      "estado_revision": "pendiente"
+    },
+    {
+      "rule_id": "R-002",
+      "tipo": "negocio",
+      "categoria": "error",
+      "descripcion": "Si el siniestro, la poliza o el cliente asociado no existen, el SELECT INTO no tiene manejador y la excepcion NO_DATA_FOUND se propaga al llamador (en el lote se cuenta como error). La unica excepcion NO_DATA_FOUND capturada dentro de pr_liquidar_siniestro es la de la cobertura.",
+      "condicion": "falta el registro de siniestro, poliza o cliente",
+      "accion": "propaga NO_DATA_FOUND; no se registra liquidacion",
+      "parametros": {},
+      "evidencia": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "SELECT * INTO v_pol FROM ls_polizas",
+          "lineas": [
+            372,
+            372
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "SELECT * INTO v_cli FROM ls_clientes",
+          "lineas": [
+            373,
+            373
+          ]
+        },
+        {
+          "archivo": "03_pkg_liquidacion_siniestros_spec.sql",
+          "fragmento": "NO_DATA_FOUND El siniestro, la poliza o el cliente no existen.",
+          "lineas": [
+            55,
+            55
+          ]
+        }
+      ],
+      "ausencias": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "patron": "WHEN\\s+NO_DATA_FOUND",
+          "esperado": 1,
+          "desde_fragmento": "PROCEDURE pr_liquidar_siniestro (",
+          "hasta_fragmento": "END pr_liquidar_siniestro;",
+          "descripcion": "dentro de pr_liquidar_siniestro solo hay un manejador NO_DATA_FOUND (cobertura)",
+          "rango": [
+            327,
+            617
+          ],
+          "encontradas": 1
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [],
+      "estado_revision": "pendiente"
+    },
+    {
+      "rule_id": "R-003",
+      "tipo": "negocio",
+      "categoria": "error",
+      "descripcion": "Los parametros de negocio se leen de LS_PARAMETROS en el momento de usarse (lectura perezosa). Si el codigo no existe se lanza ORA-20010 'Parametro no definido'. Si existe con valor numerico NULL (p. ej. VERSION_MOTOR) no hay error y se devuelve NULL.",
+      "condicion": "cada llamada a fn_param_num",
+      "accion": "devuelve valor_numerico o lanza ORA-20010",
+      "parametros": {
+        "codigo_error": -20010
+      },
+      "evidencia": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "SELECT valor_numerico",
+          "lineas": [
+            103,
+            103
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "RAISE_APPLICATION_ERROR(-20010, 'Parametro no definido: ' || p_cod_parametro);",
+          "lineas": [
+            111,
+            111
+          ]
+        },
+        {
+          "archivo": "03_pkg_liquidacion_siniestros_spec.sql",
+          "fragmento": "ORA-20010 Parametro de negocio inexistente en LS_PARAMETROS.",
+          "lineas": [
+            54,
+            54
+          ]
+        },
+        {
+          "archivo": "02_parametros.sql",
+          "fragmento": "('VERSION_MOTOR', NULL, '3.2.0'",
+          "lineas": [
+            36,
+            36
+          ]
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [
+        "¿Un parametro con valor NULL debe tratarse como error? Hoy las comparaciones con NULL no se cumplen y el flujo sigue."
+      ],
+      "estado_revision": "pendiente"
+    },
+    {
+      "rule_id": "R-004",
+      "tipo": "negocio",
+      "categoria": "validacion",
+      "descripcion": "Dominios de valores impuestos por la base: categoria de cliente (VIP, PREFERENTE, ESTANDAR), ramo (AUTO, HOGAR, SALUD, VIDA), estado de poliza, tipo de deducible (FIJO, PORCENTAJE), estado de siniestro y estado de liquidacion. El codigo solo da trato diferenciado a VIP; PREFERENTE no tiene ningun beneficio en el paquete.",
+      "condicion": "insercion/actualizacion de datos maestros",
+      "accion": "CHECK de la tabla",
+      "parametros": {
+        "categorias": [
+          "VIP",
+          "PREFERENTE",
+          "ESTANDAR"
+        ]
+      },
+      "evidencia": [
+        {
+          "archivo": "01_ddl_tablas.sql",
+          "fragmento": "CONSTRAINT ck_ls_cli_categoria CHECK (categoria IN ('VIP','PREFERENTE','ESTANDAR'))",
+          "lineas": [
+            34,
+            34
+          ]
+        },
+        {
+          "archivo": "01_ddl_tablas.sql",
+          "fragmento": "CONSTRAINT ck_ls_pol_ramo CHECK (ramo IN ('AUTO','HOGAR','SALUD','VIDA'))",
+          "lineas": [
+            59,
+            59
+          ]
+        },
+        {
+          "archivo": "01_ddl_tablas.sql",
+          "fragmento": "CONSTRAINT ck_ls_pol_estado CHECK (estado IN ('VIGENTE','CANCELADA','SUSPENDIDA'))",
+          "lineas": [
+            60,
+            60
+          ]
+        },
+        {
+          "archivo": "01_ddl_tablas.sql",
+          "fragmento": "CONSTRAINT ck_ls_pol_ded_tipo CHECK (deducible_tipo IN ('FIJO','PORCENTAJE'))",
+          "lineas": [
+            61,
+            61
+          ]
+        },
+        {
+          "archivo": "01_ddl_tablas.sql",
+          "fragmento": "CONSTRAINT ck_ls_liq_estado CHECK (estado IN ('APROBADA','RECHAZADA','PENDIENTE_APROBACION'))",
+          "lineas": [
+            124,
+            124
+          ]
+        }
+      ],
+      "ausencias": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "patron": "PREFERENTE",
+          "esperado": 0,
+          "descripcion": "el paquete nunca menciona la categoria PREFERENTE",
+          "rango": [
+            1,
+            700
+          ],
+          "encontradas": 0
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [
+        "¿La categoria PREFERENTE deberia tener beneficios?"
+      ],
+      "estado_revision": "pendiente"
+    },
+    {
+      "rule_id": "R-005",
+      "tipo": "negocio",
+      "categoria": "validacion",
+      "descripcion": "Solo se liquidan polizas VIGENTES. Cualquier otro estado (CANCELADA, SUSPENDIDA u otro) se rechaza con motivo POLIZA_NO_VIGENTE y se termina el proceso del siniestro.",
+      "condicion": "estado de poliza <> 'VIGENTE'",
+      "accion": "pr_rechazar con POLIZA_NO_VIGENTE y RETURN",
+      "parametros": {
+        "operador": "<>",
+        "valor": "VIGENTE",
+        "motivo": "POLIZA_NO_VIGENTE"
+      },
+      "evidencia": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "c_poliza_vigente CONSTANT VARCHAR2(12) := 'VIGENTE';",
+          "lineas": [
+            64,
+            64
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "IF v_pol.estado <> c_poliza_vigente THEN",
+          "lineas": [
+            386,
+            386
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "pr_rechazar(v_sin, p_fecha_proceso, 'POLIZA_NO_VIGENTE');",
+          "lineas": [
+            387,
+            387
+          ]
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [],
+      "estado_revision": "pendiente"
+    },
+    {
+      "rule_id": "R-006",
+      "tipo": "negocio",
+      "categoria": "fechas",
+      "descripcion": "La fecha de ocurrencia debe estar dentro de [fecha_inicio, fecha_fin] de la poliza, ambos extremos inclusive. Se rechaza con FUERA_DE_VIGENCIA si es menor al inicio o mayor al fin. A diferencia del plazo de denuncia, estas comparaciones NO truncan las fechas (si hubiera componente hora podria afectar el borde; no probado por ejecucion).",
+      "condicion": "ocurrencia < fecha_inicio OR ocurrencia > fecha_fin",
+      "accion": "pr_rechazar con FUERA_DE_VIGENCIA y RETURN",
+      "parametros": {
+        "operadores": [
+          "<",
+          ">"
+        ],
+        "motivo": "FUERA_DE_VIGENCIA"
+      },
+      "evidencia": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "IF v_sin.fecha_ocurrencia < v_pol.fecha_inicio",
+          "lineas": [
+            395,
+            395
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "OR v_sin.fecha_ocurrencia > v_pol.fecha_fin",
+          "lineas": [
+            396,
+            396
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "pr_rechazar(v_sin, p_fecha_proceso, 'FUERA_DE_VIGENCIA');",
+          "lineas": [
+            398,
+            398
+          ]
+        }
+      ],
+      "ausencias": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "patron": "TRUNC",
+          "esperado": 0,
+          "desde_fragmento": "IF v_sin.fecha_ocurrencia < v_pol.fecha_inicio",
+          "hasta_fragmento": "pr_rechazar(v_sin, p_fecha_proceso, 'FUERA_DE_VIGENCIA');",
+          "descripcion": "la validacion de vigencia no usa TRUNC",
+          "rango": [
+            395,
+            398
+          ],
+          "encontradas": 0
+        }
+      ],
+      "confianza": "media",
+      "preguntas_abiertas": [
+        "¿Las fechas almacenan hora?"
+      ],
+      "estado_revision": "pendiente"
+    },
+    {
+      "rule_id": "R-007",
+      "tipo": "negocio",
+      "categoria": "fechas",
+      "descripcion": "Plazo de denuncia: dias = TRUNC(denuncia) - TRUNC(ocurrencia). El maximo es DIAS_MAX_DENUNCIA (30) para ramos generales y DIAS_MAX_DENUNCIA_VIDA (365) para VIDA. Se rechaza con DENUNCIA_EXTEMPORANEA solo si dias > maximo (estricto), de modo que el dia limite es aceptado.",
+      "condicion": "v_dias_denuncia > maximo segun ramo",
+      "accion": "pr_rechazar con DENUNCIA_EXTEMPORANEA y RETURN",
+      "parametros": {
+        "DIAS_MAX_DENUNCIA": 30,
+        "DIAS_MAX_DENUNCIA_VIDA": 365,
+        "operador": ">",
+        "motivo": "DENUNCIA_EXTEMPORANEA"
+      },
+      "evidencia": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "v_dias_denuncia := TRUNC(v_sin.fecha_denuncia) - TRUNC(v_sin.fecha_ocurrencia);",
+          "lineas": [
+            407,
+            407
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "IF v_pol.ramo = c_ramo_vida THEN",
+          "lineas": [
+            409,
+            409
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "v_dias_max_denuncia := fn_param_num('DIAS_MAX_DENUNCIA_VIDA');",
+          "lineas": [
+            410,
+            410
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "v_dias_max_denuncia := fn_param_num('DIAS_MAX_DENUNCIA');",
+          "lineas": [
+            412,
+            412
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "IF v_dias_denuncia > v_dias_max_denuncia THEN",
+          "lineas": [
+            415,
+            415
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "pr_rechazar(v_sin, p_fecha_proceso, 'DENUNCIA_EXTEMPORANEA');",
+          "lineas": [
+            416,
+            416
+          ]
+        },
+        {
+          "archivo": "02_parametros.sql",
+          "fragmento": "('DIAS_MAX_DENUNCIA', 30, NULL",
+          "lineas": [
+            10,
+            10
+          ]
+        },
+        {
+          "archivo": "02_parametros.sql",
+          "fragmento": "('DIAS_MAX_DENUNCIA_VIDA', 365, NULL",
+          "lineas": [
+            11,
+            11
+          ]
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [
+        "¿Los 30 dias son calendario o habiles? El codigo usa calendario."
+      ],
+      "estado_revision": "pendiente"
+    },
+    {
+      "rule_id": "R-008",
+      "tipo": "negocio",
+      "categoria": "validacion",
+      "descripcion": "La cobertura reclamada debe existir en LS_COBERTURAS para la poliza (clave poliza + codigo de cobertura). Si no existe se rechaza con COBERTURA_NO_CONTRATADA.",
+      "condicion": "no hay fila de cobertura para poliza y cod_cobertura del siniestro",
+      "accion": "pr_rechazar con COBERTURA_NO_CONTRATADA y RETURN",
+      "parametros": {
+        "motivo": "COBERTURA_NO_CONTRATADA"
+      },
+      "evidencia": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "AND cod_cobertura = v_sin.cod_cobertura;",
+          "lineas": [
+            428,
+            428
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "WHEN NO_DATA_FOUND THEN",
+          "ocurrencia": 2,
+          "lineas": [
+            430,
+            430
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "pr_rechazar(v_sin, p_fecha_proceso, 'COBERTURA_NO_CONTRATADA');",
+          "lineas": [
+            431,
+            431
+          ]
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [],
+      "estado_revision": "pendiente"
+    },
+    {
+      "rule_id": "R-009",
+      "tipo": "negocio",
+      "categoria": "fechas",
+      "descripcion": "Periodo de carencia: dias_desde_inicio = TRUNC(ocurrencia) - TRUNC(fecha_inicio de la poliza). Se rechaza con EN_PERIODO_CARENCIA si dias_desde_inicio < dias_carencia de la cobertura (estricto): con exactamente dias_carencia dias la cobertura ya esta activa.",
+      "condicion": "dias_desde_inicio < dias_carencia",
+      "accion": "pr_rechazar con EN_PERIODO_CARENCIA y RETURN",
+      "parametros": {
+        "operador": "<",
+        "motivo": "EN_PERIODO_CARENCIA"
+      },
+      "evidencia": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "v_dias_desde_inicio := TRUNC(v_sin.fecha_ocurrencia) - TRUNC(v_pol.fecha_inicio);",
+          "lineas": [
+            440,
+            440
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "IF v_dias_desde_inicio < v_cob.dias_carencia THEN",
+          "lineas": [
+            442,
+            442
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "pr_rechazar(v_sin, p_fecha_proceso, 'EN_PERIODO_CARENCIA');",
+          "lineas": [
+            443,
+            443
+          ]
+        },
+        {
+          "archivo": "01_ddl_tablas.sql",
+          "fragmento": "dias_carencia NUMBER(4) DEFAULT 0 NOT NULL,",
+          "lineas": [
+            76,
+            76
+          ]
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [],
+      "estado_revision": "pendiente"
+    },
+    {
+      "rule_id": "R-010",
+      "tipo": "negocio",
+      "categoria": "validacion",
+      "descripcion": "Morosidad: si la poliza tiene prima_pendiente > 0 se rechaza con PRIMA_EN_MORA, salvo que el cliente sea VIP y la deuda sea <= TOLERANCIA_MORA_VIP (500); en ese caso se continua y se agrega la marca TOLERANCIA_MORA_VIP a las observaciones. El parametro solo se lee si hay deuda. En el rechazo por mora las observaciones aun estan vacias (la marca solo se agrega en la rama de tolerancia).",
+      "condicion": "prima_pendiente > 0",
+      "accion": "VIP con deuda <= 500: marca y continua; resto: rechazo PRIMA_EN_MORA",
+      "parametros": {
+        "TOLERANCIA_MORA_VIP": 500,
+        "operador_deuda": "<=",
+        "operador_umbral": ">",
+        "motivo": "PRIMA_EN_MORA"
+      },
+      "evidencia": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "IF v_pol.prima_pendiente > 0 THEN",
+          "lineas": [
+            451,
+            451
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "v_tolerancia_mora := fn_param_num('TOLERANCIA_MORA_VIP');",
+          "lineas": [
+            452,
+            452
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "IF v_cli.categoria = c_cat_vip",
+          "lineas": [
+            454,
+            454
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "AND v_pol.prima_pendiente <= v_tolerancia_mora",
+          "lineas": [
+            455,
+            455
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "pr_agregar_obs(v_observaciones, 'TOLERANCIA_MORA_VIP');",
+          "lineas": [
+            457,
+            457
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "pr_rechazar(v_sin, p_fecha_proceso, 'PRIMA_EN_MORA', v_observaciones);",
+          "lineas": [
+            459,
+            459
+          ]
+        },
+        {
+          "archivo": "02_parametros.sql",
+          "fragmento": "('TOLERANCIA_MORA_VIP', 500, NULL",
+          "lineas": [
+            18,
+            18
+          ]
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [
+        "¿La tolerancia VIP es por poliza o acumulada por cliente?"
+      ],
+      "estado_revision": "pendiente"
+    },
+    {
+      "rule_id": "R-011",
+      "tipo": "negocio",
+      "categoria": "orden",
+      "descripcion": "Orden de las validaciones de procedencia: 1) poliza vigente, 2) vigencia, 3) plazo de denuncia, 4) cobertura contratada, 5) carencia, 6) morosidad. El primer fallo gana: se registra el rechazo con ese motivo y se hace RETURN sin evaluar las siguientes.",
+      "condicion": "siempre, en cada liquidacion",
+      "accion": "evalua en secuencia y corta en el primer rechazo",
+      "parametros": {
+        "orden": [
+          "POLIZA_NO_VIGENTE",
+          "FUERA_DE_VIGENCIA",
+          "DENUNCIA_EXTEMPORANEA",
+          "COBERTURA_NO_CONTRATADA",
+          "EN_PERIODO_CARENCIA",
+          "PRIMA_EN_MORA"
+        ]
+      },
+      "evidencia_ordenada": true,
+      "evidencia": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "IF v_pol.estado <> c_poliza_vigente THEN",
+          "lineas": [
+            386,
+            386
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "IF v_sin.fecha_ocurrencia < v_pol.fecha_inicio",
+          "lineas": [
+            395,
+            395
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "IF v_dias_denuncia > v_dias_max_denuncia THEN",
+          "lineas": [
+            415,
+            415
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "pr_rechazar(v_sin, p_fecha_proceso, 'COBERTURA_NO_CONTRATADA');",
+          "lineas": [
+            431,
+            431
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "IF v_dias_desde_inicio < v_cob.dias_carencia THEN",
+          "lineas": [
+            442,
+            442
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "IF v_pol.prima_pendiente > 0 THEN",
+          "lineas": [
+            451,
+            451
+          ]
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [],
+      "estado_revision": "pendiente"
+    },
+    {
+      "rule_id": "R-012",
+      "tipo": "negocio",
+      "categoria": "efecto_secundario",
+      "descripcion": "Todo rechazo registra una liquidacion con monto base, deducible, cubierto, retencion y neto en cero, estado RECHAZADA y el motivo indicado; el siniestro pasa a RECHAZADO. Las observaciones son opcionales (por defecto NULL); solo BAJO_DEDUCIBLE, SUMA_ASEGURADA_AGOTADA y PRIMA_EN_MORA las pasan, y en ellas los importes calculados hasta ese punto NO se guardan (siempre cero).",
+      "condicion": "cualquier llamada a pr_rechazar",
+      "accion": "inserta liquidacion con importes 0 y estado RECHAZADA",
+      "parametros": {
+        "importes": 0,
+        "estado": "RECHAZADA"
+      },
+      "evidencia": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "p_observaciones IN VARCHAR2 DEFAULT NULL",
+          "lineas": [
+            307,
+            307
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "p_monto_base => 0,",
+          "lineas": [
+            313,
+            313
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "p_neto => 0,",
+          "lineas": [
+            317,
+            317
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "p_estado_liq => c_liq_rechazada,",
+          "lineas": [
+            318,
+            318
+          ]
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [
+        "¿Debe guardarse el monto calculado en rechazos por BAJO_DEDUCIBLE o SUMA_ASEGURADA_AGOTADA?"
+      ],
+      "estado_revision": "pendiente"
+    },
+    {
+      "rule_id": "R-013",
+      "tipo": "negocio",
+      "categoria": "calculo",
+      "descripcion": "Monto base = menor entre lo reclamado y el limite de la cobertura. Solo si lo reclamado supera estrictamente el limite se usa el limite y se agrega la marca LIMITE_COBERTURA; si es igual no hay tope ni marca.",
+      "condicion": "monto_reclamado > limite_cobertura",
+      "accion": "monto_base = limite_cobertura con marca; si no, monto_base = monto_reclamado",
+      "parametros": {
+        "operador": ">",
+        "marca": "LIMITE_COBERTURA"
+      },
+      "evidencia": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "IF v_sin.monto_reclamado > v_cob.limite_cobertura THEN",
+          "lineas": [
+            487,
+            487
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "v_monto_base := v_cob.limite_cobertura;",
+          "lineas": [
+            488,
+            488
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "pr_agregar_obs(v_observaciones, 'LIMITE_COBERTURA');",
+          "lineas": [
+            489,
+            489
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "v_monto_base := v_sin.monto_reclamado;",
+          "ocurrencia": 2,
+          "lineas": [
+            491,
+            491
+          ]
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [],
+      "estado_revision": "pendiente"
+    },
+    {
+      "rule_id": "R-014",
+      "tipo": "negocio",
+      "categoria": "calculo",
+      "descripcion": "Deducible: si el tipo de la poliza es FIJO se usa el valor tal cual (sin minimo); cualquier otro tipo (en la practica PORCENTAJE) se calcula como ROUND(monto_base * valor / 100, 2), sobre el MONTO BASE (ya topado) y no sobre lo reclamado.",
+      "condicion": "siempre tras el monto base",
+      "accion": "calcula deducible via fn_calcular_deducible",
+      "parametros": {
+        "base": "monto_base",
+        "decimales": 2
+      },
+      "evidencia": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "v_deducible := fn_calcular_deducible(v_pol, v_cli.categoria, v_monto_base, v_observaciones);",
+          "lineas": [
+            497,
+            497
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "IF p_poliza.deducible_tipo = 'FIJO' THEN",
+          "lineas": [
+            189,
+            189
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "v_deducible := p_poliza.deducible_valor;",
+          "lineas": [
+            190,
+            190
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "v_deducible := ROUND(p_monto_base * p_poliza.deducible_valor / 100, 2);",
+          "lineas": [
+            193,
+            193
+          ]
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [],
+      "estado_revision": "pendiente"
+    },
+    {
+      "rule_id": "R-015",
+      "tipo": "negocio",
+      "categoria": "calculo",
+      "descripcion": "Deducible minimo: solo para deducible porcentual, si el calculado es < DEDUCIBLE_MINIMO (100) se sustituye por el minimo y se agrega la marca DEDUCIBLE_MINIMO. El minimo puede superar el monto base (resultara luego BAJO_DEDUCIBLE). El parametro solo se lee en la rama porcentual.",
+      "condicion": "deducible porcentual y deducible < DEDUCIBLE_MINIMO",
+      "accion": "deducible = DEDUCIBLE_MINIMO con marca",
+      "parametros": {
+        "DEDUCIBLE_MINIMO": 100,
+        "operador": "<"
+      },
+      "evidencia": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "v_ded_minimo := fn_param_num('DEDUCIBLE_MINIMO');",
+          "lineas": [
+            192,
+            192
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "IF v_deducible < v_ded_minimo THEN",
+          "lineas": [
+            195,
+            195
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "v_deducible := v_ded_minimo;",
+          "lineas": [
+            196,
+            196
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "pr_agregar_obs(p_observaciones, 'DEDUCIBLE_MINIMO');",
+          "lineas": [
+            197,
+            197
+          ]
+        },
+        {
+          "archivo": "02_parametros.sql",
+          "fragmento": "('DEDUCIBLE_MINIMO', 100, NULL",
+          "lineas": [
+            14,
+            14
+          ]
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [
+        "¿El minimo debe aplicar tambien al deducible FIJO?"
+      ],
+      "estado_revision": "pendiente"
+    },
+    {
+      "rule_id": "R-016",
+      "tipo": "negocio",
+      "categoria": "calculo",
+      "descripcion": "Descuento VIP sobre el deducible: si el cliente es VIP y el deducible (ya con el minimo aplicado) es > 0, se reduce en PCT_DESCUENTO_DED_VIP (50) %: ROUND(deducible * (100 - pct) / 100, 2), con marca DESCUENTO_VIP. Aplica a deducibles FIJO y porcentuales y se aplica DESPUES del minimo.",
+      "condicion": "categoria = VIP y deducible > 0",
+      "accion": "deducible = ROUND(deducible*(100-50)/100, 2)",
+      "parametros": {
+        "PCT_DESCUENTO_DED_VIP": 50,
+        "operador": ">",
+        "marca": "DESCUENTO_VIP"
+      },
+      "evidencia_ordenada": true,
+      "evidencia": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "c_cat_vip CONSTANT VARCHAR2(15) := 'VIP';",
+          "lineas": [
+            62,
+            62
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "v_deducible := v_ded_minimo;",
+          "lineas": [
+            196,
+            196
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "IF p_categoria_cli = c_cat_vip AND v_deducible > 0 THEN",
+          "lineas": [
+            201,
+            201
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "v_pct_desc_vip := fn_param_num('PCT_DESCUENTO_DED_VIP');",
+          "lineas": [
+            202,
+            202
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "v_deducible := ROUND(v_deducible * (100 - v_pct_desc_vip) / 100, 2);",
+          "lineas": [
+            203,
+            203
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "pr_agregar_obs(p_observaciones, 'DESCUENTO_VIP');",
+          "lineas": [
+            204,
+            204
+          ]
+        },
+        {
+          "archivo": "02_parametros.sql",
+          "fragmento": "('PCT_DESCUENTO_DED_VIP', 50, NULL",
+          "lineas": [
+            15,
+            15
+          ]
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [],
+      "estado_revision": "pendiente"
+    },
+    {
+      "rule_id": "R-017",
+      "tipo": "negocio",
+      "categoria": "calculo",
+      "descripcion": "Monto cubierto = ROUND((monto_base - deducible) * porcentaje_cobertura / 100, 2). Si el resultado es <= 0 se rechaza con BAJO_DEDUCIBLE (el cero tambien rechaza), conservando las marcas de observacion acumuladas.",
+      "condicion": "siempre tras el deducible",
+      "accion": "calcula cubierto; si <= 0 rechaza BAJO_DEDUCIBLE",
+      "parametros": {
+        "operador": "<=",
+        "valor": 0,
+        "motivo": "BAJO_DEDUCIBLE",
+        "decimales": 2
+      },
+      "evidencia": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "v_cubierto := ROUND((v_monto_base - v_deducible) * v_cob.porcentaje_cobertura / 100, 2);",
+          "lineas": [
+            503,
+            503
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "IF v_cubierto <= 0 THEN",
+          "lineas": [
+            505,
+            505
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "pr_rechazar(v_sin, p_fecha_proceso, 'BAJO_DEDUCIBLE', v_observaciones);",
+          "lineas": [
+            506,
+            506
+          ]
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [],
+      "estado_revision": "pendiente"
+    },
+    {
+      "rule_id": "R-018",
+      "tipo": "negocio",
+      "categoria": "calculo",
+      "descripcion": "Penalizacion por siniestralidad: se cuentan los OTROS siniestros de la misma poliza (cualquier cobertura) en estado LIQUIDADO con fecha_ocurrencia en [ocurrencia_actual - 365, ocurrencia_actual) (limite inferior inclusive, superior exclusivo). Si la cuenta es >= MAX_SINIESTROS_ANUAL (3), el cubierto se reduce en PCT_PENALIZACION_SINIEST (10) %: ROUND(cubierto*(100-10)/100, 2), con marca PENALIZACION_SINIESTRALIDAD. Solo cuenta el estado LIQUIDADO del siniestro (no PENDIENTE_REVISION); siniestros liquidados antes en el mismo lote cuentan porque la cuenta lee la tabla.",
+      "condicion": "cantidad >= 3",
+      "accion": "reduce monto cubierto 10 %",
+      "parametros": {
+        "MAX_SINIESTROS_ANUAL": 3,
+        "PCT_PENALIZACION_SINIEST": 10,
+        "ventana_dias": 365,
+        "operador": ">="
+      },
+      "evidencia": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "AND s.siniestro_id <> v_sin.siniestro_id",
+          "lineas": [
+            525,
+            525
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "AND s.estado = c_sin_liquidado",
+          "lineas": [
+            526,
+            526
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "AND s.fecha_ocurrencia >= v_sin.fecha_ocurrencia - 365",
+          "lineas": [
+            527,
+            527
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "AND s.fecha_ocurrencia < v_sin.fecha_ocurrencia;",
+          "lineas": [
+            528,
+            528
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "IF v_cant_siniestros >= fn_param_num('MAX_SINIESTROS_ANUAL') THEN",
+          "lineas": [
+            530,
+            530
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "v_cubierto := ROUND(v_cubierto * (100 - fn_param_num('PCT_PENALIZACION_SINIEST')) / 100, 2);",
+          "lineas": [
+            531,
+            531
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "pr_agregar_obs(v_observaciones, 'PENALIZACION_SINIESTRALIDAD');",
+          "lineas": [
+            532,
+            532
+          ]
+        },
+        {
+          "archivo": "02_parametros.sql",
+          "fragmento": "('MAX_SINIESTROS_ANUAL', 3, NULL",
+          "lineas": [
+            21,
+            21
+          ]
+        },
+        {
+          "archivo": "02_parametros.sql",
+          "fragmento": "('PCT_PENALIZACION_SINIEST', 10, NULL",
+          "lineas": [
+            22,
+            22
+          ]
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [
+        "¿La ventana de 365 dias debe ser por cobertura o por poliza (hoy por poliza)?"
+      ],
+      "estado_revision": "pendiente"
+    },
+    {
+      "rule_id": "R-019",
+      "tipo": "negocio",
+      "categoria": "calculo",
+      "descripcion": "Suma asegurada remanente = suma_asegurada - suma de monto_cubierto de TODAS las liquidaciones APROBADA o PENDIENTE_APROBACION de la poliza (sin filtro de fechas; monto cubierto antes de retencion). Si remanente <= 0 se rechaza con SUMA_ASEGURADA_AGOTADA (con las observaciones acumuladas). Si el cubierto (ya penalizado) excede el remanente se topa al remanente con marca TOPE_SUMA_ASEGURADA.",
+      "condicion": "siempre tras la penalizacion",
+      "accion": "rechaza si remanente <= 0; topa cubierto si cubierto > remanente",
+      "parametros": {
+        "operador_rechazo": "<=",
+        "operador_tope": ">",
+        "estados_sumados": [
+          "APROBADA",
+          "PENDIENTE_APROBACION"
+        ]
+      },
+      "evidencia": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "SELECT NVL(SUM(l.monto_cubierto), 0)",
+          "lineas": [
+            541,
+            541
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "AND l.estado IN (c_liq_aprobada, c_liq_pend_aprob);",
+          "lineas": [
+            546,
+            546
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "v_suma_remanente := v_pol.suma_asegurada - v_total_indemnizado;",
+          "lineas": [
+            548,
+            548
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "IF v_suma_remanente <= 0 THEN",
+          "lineas": [
+            550,
+            550
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "pr_rechazar(v_sin, p_fecha_proceso, 'SUMA_ASEGURADA_AGOTADA', v_observaciones);",
+          "lineas": [
+            551,
+            551
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "IF v_cubierto > v_suma_remanente THEN",
+          "lineas": [
+            555,
+            555
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "v_cubierto := v_suma_remanente;",
+          "lineas": [
+            556,
+            556
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "pr_agregar_obs(v_observaciones, 'TOPE_SUMA_ASEGURADA');",
+          "lineas": [
+            557,
+            557
+          ]
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [
+        "¿La suma asegurada es por evento, por vigencia o total de la poliza (hoy: acumulado de toda la historia)?"
+      ],
+      "estado_revision": "pendiente"
+    },
+    {
+      "rule_id": "R-020",
+      "tipo": "negocio",
+      "categoria": "calculo",
+      "descripcion": "Retencion impositiva: si el ramo no es VIDA y el cubierto final (tras penalizacion y tope de suma asegurada) es > UMBRAL_RETENCION (10000, estricto), la retencion es ROUND(cubierto * TASA_RETENCION (2) / 100, 2) sobre todo el cubierto, con marca RETENCION_APLICADA; si no, 0. Neto = cubierto - retencion.",
+      "condicion": "ramo <> VIDA y cubierto > 10000",
+      "accion": "retencion 2 % del cubierto; neto = cubierto - retencion",
+      "parametros": {
+        "UMBRAL_RETENCION": 10000,
+        "TASA_RETENCION": 2,
+        "operador": ">",
+        "ramo_excluido": "VIDA"
+      },
+      "evidencia": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "IF v_pol.ramo <> c_ramo_vida",
+          "lineas": [
+            565,
+            565
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "AND v_cubierto > fn_param_num('UMBRAL_RETENCION')",
+          "lineas": [
+            566,
+            566
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "v_retencion := ROUND(v_cubierto * fn_param_num('TASA_RETENCION') / 100, 2);",
+          "lineas": [
+            568,
+            568
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "pr_agregar_obs(v_observaciones, 'RETENCION_APLICADA');",
+          "lineas": [
+            569,
+            569
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "v_retencion := 0;",
+          "lineas": [
+            571,
+            571
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "v_neto := v_cubierto - v_retencion;",
+          "lineas": [
+            574,
+            574
+          ]
+        },
+        {
+          "archivo": "02_parametros.sql",
+          "fragmento": "('UMBRAL_RETENCION', 10000, NULL",
+          "lineas": [
+            25,
+            25
+          ]
+        },
+        {
+          "archivo": "02_parametros.sql",
+          "fragmento": "('TASA_RETENCION', 2, NULL",
+          "lineas": [
+            26,
+            26
+          ]
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [
+        "¿La retencion debe aplicarse sobre el total o solo sobre el exceso del umbral?"
+      ],
+      "estado_revision": "pendiente"
+    },
+    {
+      "rule_id": "R-021",
+      "tipo": "negocio",
+      "categoria": "orden",
+      "descripcion": "Orden de calculo: monto base, deducible, cubierto (rechazo si <= 0), penalizacion por siniestralidad, suma asegurada remanente (rechazo/tope), retencion y neto, umbral de fraude y estado final, y por ultimo el registro del resultado. Cambiar el orden altera los importes (p. ej. la penalizacion se aplica antes del tope y la retencion despues).",
+      "condicion": "siempre",
+      "accion": "secuencia fija de calculo",
+      "parametros": {},
+      "evidencia_ordenada": true,
+      "evidencia": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "IF v_sin.monto_reclamado > v_cob.limite_cobertura THEN",
+          "lineas": [
+            487,
+            487
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "v_deducible := fn_calcular_deducible(v_pol, v_cli.categoria, v_monto_base, v_observaciones);",
+          "lineas": [
+            497,
+            497
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "v_cubierto := ROUND((v_monto_base - v_deducible) * v_cob.porcentaje_cobertura / 100, 2);",
+          "lineas": [
+            503,
+            503
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "SELECT COUNT(*)",
+          "lineas": [
+            521,
+            521
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "v_cubierto := ROUND(v_cubierto * (100 - fn_param_num('PCT_PENALIZACION_SINIEST')) / 100, 2);",
+          "lineas": [
+            531,
+            531
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "SELECT NVL(SUM(l.monto_cubierto), 0)",
+          "lineas": [
+            541,
+            541
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "v_cubierto := v_suma_remanente;",
+          "lineas": [
+            556,
+            556
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "v_retencion := ROUND(v_cubierto * fn_param_num('TASA_RETENCION') / 100, 2);",
+          "lineas": [
+            568,
+            568
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "v_neto := v_cubierto - v_retencion;",
+          "lineas": [
+            574,
+            574
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "v_umbral_fraude := ROUND(v_cob.limite_cobertura * fn_param_num('PCT_ALERTA_FRAUDE') / 100, 2);",
+          "lineas": [
+            586,
+            586
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "pr_registrar_resultado(",
+          "ocurrencia": 2,
+          "lineas": [
+            601,
+            601
+          ]
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [],
+      "estado_revision": "pendiente"
+    },
+    {
+      "rule_id": "R-022",
+      "tipo": "negocio",
+      "categoria": "redondeo",
+      "descripcion": "Convencion de redondeo: cada operacion de porcentaje se redondea de inmediato a 2 decimales con ROUND (la cabecera documenta 'mitad hacia arriba'): deducible porcentual, descuento VIP, cubierto, penalizacion, retencion y umbral de fraude. No hay redondeo intermedio a mas decimales; las variables de importe son NUMBER(14,2).",
+      "condicion": "cada calculo de porcentaje",
+      "accion": "ROUND(..., 2) tras cada paso",
+      "parametros": {
+        "decimales": 2
+      },
+      "evidencia": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "Todos los importes calculados se redondean a 2 decimales con ROUND",
+          "lineas": [
+            50,
+            50
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "v_deducible := ROUND(p_monto_base * p_poliza.deducible_valor / 100, 2);",
+          "lineas": [
+            193,
+            193
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "v_deducible := ROUND(v_deducible * (100 - v_pct_desc_vip) / 100, 2);",
+          "lineas": [
+            203,
+            203
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "v_retencion := ROUND(v_cubierto * fn_param_num('TASA_RETENCION') / 100, 2);",
+          "lineas": [
+            568,
+            568
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "v_umbral_fraude := ROUND(v_cob.limite_cobertura * fn_param_num('PCT_ALERTA_FRAUDE') / 100, 2);",
+          "lineas": [
+            586,
+            586
+          ]
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [],
+      "estado_revision": "pendiente"
+    },
+    {
+      "rule_id": "R-023",
+      "tipo": "negocio",
+      "categoria": "validacion",
+      "descripcion": "Alerta de fraude: umbral = ROUND(limite_cobertura * PCT_ALERTA_FRAUDE(80)/100, 2). Si dias_desde_inicio <= DIAS_ALERTA_FRAUDE (15, inclusive) Y el monto RECLAMADO (no el base ni el cubierto) es >= umbral (inclusive), el estado es PENDIENTE_APROBACION con motivo SOSPECHA_FRAUDE. Los importes calculados si se guardan.",
+      "condicion": "dias_desde_inicio <= 15 y monto_reclamado >= umbral",
+      "accion": "estado PENDIENTE_APROBACION / SOSPECHA_FRAUDE",
+      "parametros": {
+        "DIAS_ALERTA_FRAUDE": 15,
+        "PCT_ALERTA_FRAUDE": 80,
+        "operador_dias": "<=",
+        "operador_monto": ">="
+      },
+      "evidencia": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "IF v_dias_desde_inicio <= fn_param_num('DIAS_ALERTA_FRAUDE')",
+          "lineas": [
+            588,
+            588
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "AND v_sin.monto_reclamado >= v_umbral_fraude",
+          "lineas": [
+            589,
+            589
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "v_estado_liq := c_liq_pend_aprob;",
+          "ocurrencia": 1,
+          "lineas": [
+            591,
+            591
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "v_motivo := 'SOSPECHA_FRAUDE';",
+          "lineas": [
+            592,
+            592
+          ]
+        },
+        {
+          "archivo": "02_parametros.sql",
+          "fragmento": "('DIAS_ALERTA_FRAUDE', 15, NULL",
+          "lineas": [
+            30,
+            30
+          ]
+        },
+        {
+          "archivo": "02_parametros.sql",
+          "fragmento": "('PCT_ALERTA_FRAUDE', 80, NULL",
+          "lineas": [
+            31,
+            31
+          ]
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [
+        "¿El umbral de fraude debe compararse con el monto reclamado o con el cubierto?"
+      ],
+      "estado_revision": "pendiente"
+    },
+    {
+      "rule_id": "R-024",
+      "tipo": "negocio",
+      "categoria": "orden",
+      "descripcion": "Estado final: primero fraude (prioridad), luego si el NETO es > TOPE_AUTO_APROBACION (50000, estricto) queda PENDIENTE_APROBACION con SUPERA_TOPE_AUTOMATICO; en otro caso APROBADA con LIQUIDACION_AUTOMATICA. Un neto igual al tope se aprueba.",
+      "condicion": "liquidacion que paso todas las validaciones",
+      "accion": "asigna estado y motivo",
+      "parametros": {
+        "TOPE_AUTO_APROBACION": 50000,
+        "operador": ">"
+      },
+      "evidencia_ordenada": true,
+      "evidencia": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "IF v_dias_desde_inicio <= fn_param_num('DIAS_ALERTA_FRAUDE')",
+          "lineas": [
+            588,
+            588
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "ELSIF v_neto > fn_param_num('TOPE_AUTO_APROBACION') THEN",
+          "lineas": [
+            593,
+            593
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "v_motivo := 'SUPERA_TOPE_AUTOMATICO';",
+          "lineas": [
+            595,
+            595
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "v_estado_liq := c_liq_aprobada;",
+          "lineas": [
+            597,
+            597
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "v_motivo := 'LIQUIDACION_AUTOMATICA';",
+          "lineas": [
+            598,
+            598
+          ]
+        },
+        {
+          "archivo": "02_parametros.sql",
+          "fragmento": "('TOPE_AUTO_APROBACION', 50000, NULL",
+          "lineas": [
+            29,
+            29
+          ]
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [],
+      "estado_revision": "pendiente"
+    },
+    {
+      "rule_id": "R-025",
+      "tipo": "negocio",
+      "categoria": "efecto_secundario",
+      "descripcion": "Correspondencia estado liquidacion -> estado del siniestro: APROBADA -> LIQUIDADO, RECHAZADA -> RECHAZADO, PENDIENTE_APROBACION -> PENDIENTE_REVISION. El siniestro se actualiza con esa correspondencia.",
+      "condicion": "al registrar cualquier resultado",
+      "accion": "UPDATE ls_siniestros SET estado",
+      "parametros": {
+        "APROBADA": "LIQUIDADO",
+        "RECHAZADA": "RECHAZADO",
+        "PENDIENTE_APROBACION": "PENDIENTE_REVISION"
+      },
+      "evidencia": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "WHEN c_liq_aprobada THEN c_sin_liquidado",
+          "lineas": [
+            284,
+            284
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "WHEN c_liq_rechazada THEN c_sin_rechazado",
+          "lineas": [
+            285,
+            285
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "WHEN c_liq_pend_aprob THEN c_sin_pend_revision",
+          "lineas": [
+            286,
+            286
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "SET estado = v_estado_sin",
+          "lineas": [
+            290,
+            290
+          ]
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [],
+      "estado_revision": "pendiente"
+    },
+    {
+      "rule_id": "R-026",
+      "tipo": "negocio",
+      "categoria": "efecto_secundario",
+      "descripcion": "Se inserta una fila en LS_LIQUIDACIONES por siniestro con: id de secuencia, fecha_liquidacion = fecha de proceso recibida (no SYSDATE), monto reclamado original, base, deducible, cubierto, retencion, neto, estado, motivo, observaciones (marcas separadas por ';') y usuario USER.",
+      "condicion": "al registrar cualquier resultado",
+      "accion": "INSERT en ls_liquidaciones",
+      "parametros": {},
+      "evidencia": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "INSERT INTO ls_liquidaciones (",
+          "lineas": [
+            272,
+            272
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "seq_ls_liquidacion.NEXTVAL, p_siniestro.siniestro_id, p_fecha_proceso,",
+          "lineas": [
+            277,
+            277
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "p_siniestro.monto_reclamado, p_monto_base, p_deducible, p_cubierto,",
+          "lineas": [
+            278,
+            278
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "p_retencion, p_neto, p_estado_liq, p_motivo, p_observaciones, USER",
+          "lineas": [
+            279,
+            279
+          ]
+        },
+        {
+          "archivo": "01_ddl_tablas.sql",
+          "fragmento": "usuario_proceso VARCHAR2(30) DEFAULT USER NOT NULL,",
+          "lineas": [
+            121,
+            121
+          ]
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [],
+      "estado_revision": "pendiente"
+    },
+    {
+      "rule_id": "R-027",
+      "tipo": "negocio",
+      "categoria": "efecto_secundario",
+      "descripcion": "Efectos NO realizados por la liquidacion: no hace COMMIT (lo controla el llamador), no modifica polizas, coberturas, clientes ni liquidaciones existentes; el unico UPDATE es el estado del siniestro. No se actualiza prima_pendiente ni la suma asegurada: el remanente se deriva sumando liquidaciones.",
+      "condicion": "siempre",
+      "accion": "solo INSERT de liquidacion y UPDATE de estado de siniestro",
+      "parametros": {},
+      "evidencia": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "UPDATE ls_siniestros",
+          "lineas": [
+            289,
+            289
+          ]
+        },
+        {
+          "archivo": "03_pkg_liquidacion_siniestros_spec.sql",
+          "fragmento": "NO realiza COMMIT (lo controla el llamador)",
+          "lineas": [
+            47,
+            47
+          ]
+        },
+        {
+          "archivo": "03_pkg_liquidacion_siniestros_spec.sql",
+          "fragmento": "Inserta un registro en LS_LIQUIDACIONES y actualiza el estado del",
+          "lineas": [
+            46,
+            46
+          ]
+        }
+      ],
+      "ausencias": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "patron": "\\bCOMMIT\\b",
+          "esperado": 0,
+          "desde_fragmento": "PROCEDURE pr_registrar_resultado (",
+          "hasta_fragmento": "END pr_liquidar_siniestro;",
+          "descripcion": "sin COMMIT desde pr_registrar_resultado hasta el fin de pr_liquidar_siniestro",
+          "rango": [
+            258,
+            617
+          ],
+          "encontradas": 0
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "patron": "UPDATE\\s+ls_(polizas|coberturas|liquidaciones|clientes)",
+          "esperado": 0,
+          "descripcion": "ningun UPDATE sobre polizas, coberturas, liquidaciones ni clientes",
+          "rango": [
+            1,
+            700
+          ],
+          "encontradas": 0
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "patron": "UPDATE\\s+ls_siniestros",
+          "esperado": 1,
+          "descripcion": "un unico UPDATE sobre siniestros",
+          "rango": [
+            1,
+            700
+          ],
+          "encontradas": 1
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [],
+      "estado_revision": "pendiente"
+    },
+    {
+      "rule_id": "R-028",
+      "tipo": "negocio",
+      "categoria": "orden",
+      "descripcion": "Seleccion y orden del lote: se procesan los siniestros en estado REGISTRADO con fecha_denuncia <= fecha de proceso (inclusive), en orden ascendente de siniestro_id. El orden importa porque los liquidados antes afectan siniestralidad y suma asegurada de los siguientes. La fecha por defecto es TRUNC(SYSDATE); el script de ejecucion usa 2026-03-31. Siniestros con denuncia posterior al corte no se tocan.",
+      "condicion": "pr_procesar_lote",
+      "accion": "recorre el cursor por siniestro_id ascendente",
+      "parametros": {
+        "operador": "<=",
+        "orden": "siniestro_id ASC",
+        "fecha_corte_script": "2026-03-31"
+      },
+      "evidencia": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "WHERE s.estado = c_sin_registrado",
+          "lineas": [
+            628,
+            628
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "AND s.fecha_denuncia <= p_fecha_proceso",
+          "lineas": [
+            629,
+            629
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "ORDER BY s.siniestro_id;",
+          "lineas": [
+            630,
+            630
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "p_fecha_proceso IN DATE DEFAULT TRUNC(SYSDATE)",
+          "lineas": [
+            623,
+            623
+          ]
+        },
+        {
+          "archivo": "03_pkg_liquidacion_siniestros_spec.sql",
+          "fragmento": "PROCEDURE pr_procesar_lote (",
+          "lineas": [
+            72,
+            72
+          ]
+        },
+        {
+          "archivo": "03_pkg_liquidacion_siniestros_spec.sql",
+          "fragmento": "fecha de denuncia sea menor o igual a la fecha de proceso, en orden",
+          "lineas": [
+            65,
+            65
+          ]
+        },
+        {
+          "archivo": "ejecutar_lote.sql",
+          "fragmento": "pkg_liquidacion_siniestros.pr_procesar_lote(p_fecha_proceso => DATE '2026-03-31');",
+          "lineas": [
+            9,
+            9
+          ]
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [],
+      "estado_revision": "pendiente"
+    },
+    {
+      "rule_id": "R-029",
+      "tipo": "negocio",
+      "categoria": "error",
+      "descripcion": "Aislamiento por siniestro: cada uno se procesa tras un SAVEPOINT; ante cualquier excepcion se hace ROLLBACK al savepoint (se deshacen liquidacion y cambio de estado, el siniestro sigue REGISTRADO), se cuenta como error y se escribe un log ERROR con el mensaje de la excepcion. El lote continua con el siguiente.",
+      "condicion": "cualquier excepcion en pr_liquidar_siniestro o en la lectura posterior",
+      "accion": "rollback parcial, contar error, log ERROR",
+      "parametros": {},
+      "evidencia": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "SAVEPOINT sp_siniestro;",
+          "lineas": [
+            649,
+            649
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "WHEN OTHERS THEN",
+          "lineas": [
+            672,
+            672
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "ROLLBACK TO sp_siniestro;",
+          "lineas": [
+            673,
+            673
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "v_cant_errores := v_cant_errores + 1;",
+          "lineas": [
+            674,
+            674
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "pr_log('ERROR', r.siniestro_id, SQLERRM);",
+          "lineas": [
+            675,
+            675
+          ]
+        },
+        {
+          "archivo": "03_pkg_liquidacion_siniestros_spec.sql",
+          "fragmento": "un error en uno no detiene el lote",
+          "lineas": [
+            67,
+            67
+          ]
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [
+        "¿Un siniestro con error se reintenta en el siguiente lote o requiere intervencion?"
+      ],
+      "estado_revision": "pendiente"
+    },
+    {
+      "rule_id": "R-030",
+      "tipo": "negocio",
+      "categoria": "calculo",
+      "descripcion": "Contadores del lote segun el estado final del siniestro: LIQUIDADO suma a liquidados y acumula el monto neto de su liquidacion APROBADA al total neto aprobado; RECHAZADO suma a rechazados; PENDIENTE_REVISION suma a pendientes (su neto NO entra en el total). Procesados se incrementa antes de procesar cada siniestro, tambien los que fallan.",
+      "condicion": "tras cada liquidacion exitosa",
+      "accion": "actualiza contadores y total neto aprobado",
+      "parametros": {},
+      "evidencia": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "IF v_estado_final = c_sin_liquidado THEN",
+          "lineas": [
+            657,
+            657
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "v_cant_liquidados := v_cant_liquidados + 1;",
+          "lineas": [
+            658,
+            658
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "AND estado = c_liq_aprobada;",
+          "lineas": [
+            663,
+            663
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "v_total_neto_aprob := v_total_neto_aprob + v_neto_sin;",
+          "lineas": [
+            665,
+            665
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "ELSIF v_estado_final = c_sin_rechazado THEN",
+          "lineas": [
+            666,
+            666
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "v_cant_rechazados := v_cant_rechazados + 1;",
+          "lineas": [
+            667,
+            667
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "ELSIF v_estado_final = c_sin_pend_revision THEN",
+          "lineas": [
+            668,
+            668
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "v_cant_pendientes := v_cant_pendientes + 1;",
+          "lineas": [
+            669,
+            669
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "v_cant_procesados := v_cant_procesados + 1;",
+          "lineas": [
+            646,
+            646
+          ]
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [],
+      "estado_revision": "pendiente"
+    },
+    {
+      "rule_id": "R-031",
+      "tipo": "negocio",
+      "categoria": "efecto_secundario",
+      "descripcion": "El lote hace un unico COMMIT al terminar el bucle (no por siniestro) y escribe en bitacora un INFO de inicio (con la fecha de proceso) y un INFO de fin con los contadores.",
+      "condicion": "fin de pr_procesar_lote",
+      "accion": "COMMIT y logs INFO",
+      "parametros": {},
+      "evidencia": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "COMMIT;",
+          "ocurrencia": 2,
+          "lineas": [
+            679,
+            679
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "pr_log('INFO', NULL, 'Inicio lote de liquidacion. Fecha proceso: ' ||",
+          "lineas": [
+            642,
+            642
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "pr_log('INFO', NULL, 'Fin lote. Procesados=' || v_cant_procesados ||",
+          "lineas": [
+            681,
+            681
+          ]
+        },
+        {
+          "archivo": "03_pkg_liquidacion_siniestros_spec.sql",
+          "fragmento": "Al finalizar realiza COMMIT y emite un resumen por DBMS_OUTPUT.",
+          "lineas": [
+            68,
+            68
+          ]
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [],
+      "estado_revision": "pendiente"
+    },
+    {
+      "rule_id": "R-032",
+      "tipo": "negocio",
+      "categoria": "fechas",
+      "descripcion": "La fecha de proceso solo se usa en pr_liquidar_siniestro como fecha_liquidacion registrada y para filtrar el lote por fecha de denuncia; no participa en ninguna validacion de vigencia, plazo ni carencia (esas usan solo fechas del siniestro y de la poliza).",
+      "condicion": "siempre",
+      "accion": "sin comparaciones ni aritmetica con p_fecha_proceso",
+      "parametros": {},
+      "evidencia": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "p_fecha_proceso => p_fecha_proceso,",
+          "ocurrencia": 2,
+          "lineas": [
+            603,
+            603
+          ]
+        }
+      ],
+      "ausencias": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "patron": "p_fecha_proceso\\s*[-+<>]|[-+<]=?\\s*p_fecha_proceso|(?<!=)>=?\\s*p_fecha_proceso",
+          "esperado": 0,
+          "desde_fragmento": "PROCEDURE pr_liquidar_siniestro (",
+          "hasta_fragmento": "END pr_liquidar_siniestro;",
+          "descripcion": "sin comparaciones ni aritmetica con p_fecha_proceso dentro de pr_liquidar_siniestro",
+          "rango": [
+            327,
+            617
+          ],
+          "encontradas": 0
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [
+        "¿La vigencia debe evaluarse contra la fecha de proceso?"
+      ],
+      "estado_revision": "pendiente"
+    },
+    {
+      "rule_id": "R-033",
+      "tipo": "tecnico",
+      "categoria": "efecto_secundario",
+      "descripcion": "La bitacora LS_LOG_PROCESO se escribe con transaccion autonoma y COMMIT propio: los logs persisten aunque se haga ROLLBACK al savepoint del siniestro o falle el lote. El mensaje se trunca a 1000 caracteres. Cada registro de resultado escribe un log INFO con estado, motivo y neto.",
+      "condicion": "cada llamada a pr_log",
+      "accion": "INSERT + COMMIT autonomo",
+      "parametros": {
+        "max_mensaje": 1000
+      },
+      "evidencia": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "PRAGMA AUTONOMOUS_TRANSACTION;",
+          "lineas": [
+            86,
+            86
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "COMMIT;",
+          "ocurrencia": 1,
+          "lineas": [
+            90,
+            90
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "SUBSTR(p_mensaje, 1, 1000)",
+          "lineas": [
+            89,
+            89
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "'Resultado: ' || p_estado_liq || ' / ' || p_motivo ||",
+          "lineas": [
+            294,
+            294
+          ]
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [],
+      "estado_revision": "pendiente"
+    },
+    {
+      "rule_id": "R-034",
+      "tipo": "tecnico",
+      "categoria": "efecto_secundario",
+      "descripcion": "Las marcas de observacion se concatenan con ';' en el orden en que se generan (si el texto es NULL, la primera marca va sola). La columna es VARCHAR2(400); un desborde no esta probado por ejecucion.",
+      "condicion": "cada pr_agregar_obs",
+      "accion": "concatena marca",
+      "parametros": {
+        "separador": ";",
+        "longitud_max": 400
+      },
+      "evidencia": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "c_separador_obs CONSTANT VARCHAR2(1) := ';';",
+          "lineas": [
+            61,
+            61
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "IF p_observaciones IS NULL THEN",
+          "lineas": [
+            123,
+            123
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "p_observaciones := p_marca;",
+          "lineas": [
+            124,
+            124
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "p_observaciones := p_observaciones || c_separador_obs || p_marca;",
+          "lineas": [
+            126,
+            126
+          ]
+        }
+      ],
+      "confianza": "media",
+      "preguntas_abiertas": [],
+      "estado_revision": "pendiente"
+    },
+    {
+      "rule_id": "R-035",
+      "tipo": "tecnico",
+      "categoria": "efecto_secundario",
+      "descripcion": "El resumen del lote se imprime por DBMS_OUTPUT con procesados, liquidados, rechazados, pendientes, errores y total neto aprobado (formato FM999999990.00). Es solo salida; no hay logica.",
+      "condicion": "fin del lote",
+      "accion": "imprime resumen",
+      "parametros": {
+        "formato_neto": "FM999999990.00"
+      },
+      "evidencia": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "DBMS_OUTPUT.PUT_LINE(' RESUMEN LOTE DE LIQUIDACION');",
+          "lineas": [
+            688,
+            688
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "DBMS_OUTPUT.PUT_LINE(' Total neto aprobado: ' || TO_CHAR(v_total_neto_aprob, 'FM999999990.00'));",
+          "lineas": [
+            695,
+            695
+          ]
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [],
+      "estado_revision": "pendiente"
+    },
+    {
+      "rule_id": "R-036",
+      "tipo": "tecnico",
+      "categoria": "efecto_secundario",
+      "descripcion": "La correspondencia estado liquidacion -> estado siniestro es un CASE sin ELSE: un estado distinto de los tres conocidos dejaria el estado en NULL (no probado por ejecucion). Hoy solo se invocan los tres estados conocidos.",
+      "condicion": "estado de liquidacion fuera de los tres conocidos",
+      "accion": "estado NULL en UPDATE (no probado por ejecucion)",
+      "parametros": {},
+      "evidencia": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "v_estado_sin := CASE p_estado_liq",
+          "lineas": [
+            283,
+            283
+          ]
+        }
+      ],
+      "confianza": "media",
+      "preguntas_abiertas": [],
+      "estado_revision": "pendiente"
+    },
+    {
+      "rule_id": "R-037",
+      "tipo": "tecnico",
+      "categoria": "calculo",
+      "descripcion": "Codigo muerto: fn_es_dia_habil (lunes a viernes, sin festivos) esta definida pero nunca se invoca y no esta en la especificacion; ninguna regla depende de dias habiles.",
+      "condicion": "nunca se ejecuta",
+      "accion": "ninguna",
+      "parametros": {},
+      "evidencia": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "RETURN v_dia NOT IN ('SAT', 'SUN');",
+          "lineas": [
+            138,
+            138
+          ]
+        }
+      ],
+      "ausencias": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "patron": "fn_es_dia_habil\\s*\\(",
+          "esperado": 1,
+          "descripcion": "solo la definicion, sin llamadas",
+          "rango": [
+            1,
+            700
+          ],
+          "encontradas": 1
+        },
+        {
+          "archivo": "03_pkg_liquidacion_siniestros_spec.sql",
+          "patron": "fn_es_dia_habil|fn_calcular_iva|fn_calcular_deducible|pr_recalcular_reserva_tecnica|pr_enviar_notificacion",
+          "esperado": 0,
+          "descripcion": "la especificacion publica solo los dos procedimientos",
+          "rango": [
+            1,
+            77
+          ],
+          "encontradas": 0
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [],
+      "estado_revision": "pendiente"
+    },
+    {
+      "rule_id": "R-038",
+      "tipo": "tecnico",
+      "categoria": "calculo",
+      "descripcion": "Codigo muerto: fn_calcular_deducible_v1 (version 2009) calcula el deducible sobre el monto reclamado, sin minimo ni VIP, truncando (TRUNC) a 2 decimales en lugar de redondear. Solo se referencia en un bloque comentado; las dos lineas posteriores al RETURN son inalcanzables.",
+      "condicion": "nunca se ejecuta",
+      "accion": "ninguna (la version vigente es fn_calcular_deducible)",
+      "parametros": {},
+      "evidencia": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "IF p_deducible_tipo = 'FIJO' THEN",
+          "lineas": [
+            153,
+            153
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "ELSIF p_deducible_tipo = 'PORCENTAJE' THEN",
+          "lineas": [
+            155,
+            155
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "RETURN TRUNC(v_deducible, 2);",
+          "lineas": [
+            159,
+            159
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "v_deducible := v_deducible * 1.0;",
+          "lineas": [
+            162,
+            162
+          ]
+        }
+      ],
+      "ausencias": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "patron": "fn_calcular_deducible_v1\\s*\\(",
+          "esperado": 2,
+          "descripcion": "solo la definicion y la llamada dentro del bloque comentado",
+          "rango": [
+            1,
+            700
+          ],
+          "encontradas": 2
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [],
+      "estado_revision": "pendiente"
+    },
+    {
+      "rule_id": "R-039",
+      "tipo": "tecnico",
+      "categoria": "calculo",
+      "descripcion": "Codigo muerto: fn_calcular_iva (ROUND(monto * TASA_IVA / 100, 2)) nunca se invoca; el IVA (parametro TASA_IVA = 19) no interviene en ningun importe de la liquidacion.",
+      "condicion": "nunca se ejecuta",
+      "accion": "ninguna",
+      "parametros": {
+        "TASA_IVA": 19
+      },
+      "evidencia": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "RETURN ROUND(p_monto * v_tasa / 100, 2);",
+          "lineas": [
+            218,
+            218
+          ]
+        },
+        {
+          "archivo": "02_parametros.sql",
+          "fragmento": "('TASA_IVA', 19, NULL",
+          "lineas": [
+            35,
+            35
+          ]
+        }
+      ],
+      "ausencias": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "patron": "fn_calcular_iva\\s*\\(",
+          "esperado": 1,
+          "descripcion": "solo la definicion, sin llamadas",
+          "rango": [
+            1,
+            700
+          ],
+          "encontradas": 1
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [
+        "¿Debe aplicarse IVA a algun importe?"
+      ],
+      "estado_revision": "pendiente"
+    },
+    {
+      "rule_id": "R-040",
+      "tipo": "tecnico",
+      "categoria": "calculo",
+      "descripcion": "Codigo muerto: pr_recalcular_reserva_tecnica (siniestros LIQUIDADOS de anos anteriores, reserva = ROUND(monto_reclamado * FACTOR_INFLACION, 2) en LS_TMP_CALCULO_2009 tras vaciarla) es privada y nunca se invoca.",
+      "condicion": "nunca se ejecuta",
+      "accion": "ninguna",
+      "parametros": {
+        "FACTOR_INFLACION": 1.035
+      },
+      "evidencia": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "DELETE FROM ls_tmp_calculo_2009;",
+          "lineas": [
+            231,
+            231
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "VALUES (r.siniestro_id, ROUND(r.monto_reclamado * v_factor, 2), SYSDATE);",
+          "lineas": [
+            235,
+            235
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "WHERE EXTRACT(YEAR FROM s.fecha_ocurrencia) < p_anio",
+          "lineas": [
+            72,
+            72
+          ]
+        },
+        {
+          "archivo": "01_ddl_tablas.sql",
+          "fragmento": "CREATE TABLE ls_tmp_calculo_2009 (",
+          "lineas": [
+            155,
+            155
+          ]
+        },
+        {
+          "archivo": "02_parametros.sql",
+          "fragmento": "('FACTOR_INFLACION', 1.035, NULL",
+          "lineas": [
+            34,
+            34
+          ]
+        }
+      ],
+      "ausencias": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "patron": "pr_recalcular_reserva_tecnica\\s*\\(",
+          "esperado": 1,
+          "descripcion": "solo la definicion, sin llamadas",
+          "rango": [
+            1,
+            700
+          ],
+          "encontradas": 1
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [
+        "¿Se ejecuta fuera del paquete?"
+      ],
+      "estado_revision": "pendiente"
+    },
+    {
+      "rule_id": "R-041",
+      "tipo": "tecnico",
+      "categoria": "efecto_secundario",
+      "descripcion": "Modo debug y notificacion desactivados: c_modo_debug es constante FALSE, por lo que nunca se ejecutan la traza DEBUG (que incluiria nombre del cliente, dato personal) ni pr_enviar_notificacion (solo imprime por DBMS_OUTPUT; el envio de correo esta comentado).",
+      "condicion": "c_modo_debug = TRUE (no ocurre)",
+      "accion": "ninguna en produccion",
+      "parametros": {
+        "c_modo_debug": false
+      },
+      "evidencia": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "c_modo_debug CONSTANT BOOLEAN := FALSE;",
+          "lineas": [
+            60,
+            60
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "IF c_modo_debug THEN",
+          "ocurrencia": 1,
+          "lineas": [
+            377,
+            377
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "IF c_modo_debug THEN",
+          "ocurrencia": 2,
+          "lineas": [
+            614,
+            614
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "pr_enviar_notificacion(v_sin.siniestro_id, v_estado_liq);",
+          "lineas": [
+            615,
+            615
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "DBMS_OUTPUT.PUT_LINE('[NOTIFICACION] ' || v_mensaje);",
+          "lineas": [
+            251,
+            251
+          ]
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [],
+      "estado_revision": "pendiente"
+    },
+    {
+      "rule_id": "R-042",
+      "tipo": "tecnico",
+      "categoria": "efecto_secundario",
+      "descripcion": "Codigo inalcanzable: el aviso WARN para polizas SUSPENDIDAS (y el contador v_contador_aux, que nunca se lee) no se ejecuta porque una poliza no VIGENTE ya fue rechazada antes.",
+      "condicion": "estado = SUSPENDIDA tras pasar la validacion de vigente (imposible)",
+      "accion": "ninguna",
+      "parametros": {},
+      "evidencia_ordenada": true,
+      "evidencia": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "IF v_pol.estado <> c_poliza_vigente THEN",
+          "lineas": [
+            386,
+            386
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "IF v_pol.estado = 'SUSPENDIDA' THEN",
+          "lineas": [
+            465,
+            465
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "v_contador_aux := v_contador_aux + 1;",
+          "lineas": [
+            467,
+            467
+          ]
+        }
+      ],
+      "ausencias": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "patron": "v_contador_aux",
+          "esperado": 2,
+          "descripcion": "solo declaracion e incremento, nunca leida",
+          "rango": [
+            1,
+            700
+          ],
+          "encontradas": 2
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [],
+      "estado_revision": "pendiente"
+    },
+    {
+      "rule_id": "R-043",
+      "tipo": "tecnico",
+      "categoria": "validacion",
+      "descripcion": "Codigo inalcanzable o comentado: IF v_cubierto < 0 con e_monto_invalido nunca se cumple porque cubierto <= 0 ya se rechazo; e_monto_invalido no tiene otro manejador. El bloque comentado SIN-0001 (calculo original sin penalizacion, retencion ni remanente) no se ejecuta.",
+      "condicion": "nunca se ejecuta",
+      "accion": "ninguna",
+      "parametros": {},
+      "evidencia_ordenada": true,
+      "evidencia": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "-- SIN-0001 (2009): calculo original, reemplazado en SIN-0310",
+          "lineas": [
+            471,
+            471
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "IF v_cubierto > v_pol.suma_asegurada THEN",
+          "lineas": [
+            477,
+            477
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "IF v_cubierto <= 0 THEN",
+          "lineas": [
+            505,
+            505
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "IF v_cubierto < 0 THEN",
+          "lineas": [
+            510,
+            510
+          ]
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "RAISE e_monto_invalido;",
+          "lineas": [
+            512,
+            512
+          ]
+        }
+      ],
+      "ausencias": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "patron": "e_monto_invalido",
+          "esperado": 2,
+          "descripcion": "solo declaracion y RAISE, sin manejador propio",
+          "rango": [
+            1,
+            700
+          ],
+          "encontradas": 2
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [],
+      "estado_revision": "pendiente"
+    },
+    {
+      "rule_id": "R-044",
+      "tipo": "tecnico",
+      "categoria": "error",
+      "descripcion": "pr_liquidar_siniestro lee FACTOR_INFLACION al inicio aunque nunca lo usa: su unico efecto es que, si el parametro no existe, TODO siniestro falla con ORA-20010 antes de cualquier validacion.",
+      "condicion": "siempre, tras cargar siniestro, poliza y cliente",
+      "accion": "lectura sin uso",
+      "parametros": {},
+      "evidencia": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "v_factor_inflacion := fn_param_num('FACTOR_INFLACION');",
+          "lineas": [
+            375,
+            375
+          ]
+        }
+      ],
+      "ausencias": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "patron": "v_factor_inflacion",
+          "esperado": 2,
+          "descripcion": "solo declaracion y asignacion",
+          "rango": [
+            1,
+            700
+          ],
+          "encontradas": 2
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [],
+      "estado_revision": "pendiente"
+    },
+    {
+      "rule_id": "R-045",
+      "tipo": "tecnico",
+      "categoria": "calculo",
+      "descripcion": "El lote acumula v_total_reclamado pero nunca lo imprime ni lo registra; el parametro VERSION_MOTOR tampoco se usa en el paquete.",
+      "condicion": "siempre",
+      "accion": "acumulacion sin uso",
+      "parametros": {},
+      "evidencia": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "fragmento": "v_total_reclamado := v_total_reclamado + r.monto_reclamado;",
+          "lineas": [
+            647,
+            647
+          ]
+        }
+      ],
+      "ausencias": [
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "patron": "v_total_reclamado",
+          "esperado": 2,
+          "descripcion": "solo declaracion y acumulacion",
+          "rango": [
+            1,
+            700
+          ],
+          "encontradas": 2
+        },
+        {
+          "archivo": "04_pkg_liquidacion_siniestros_body.sql",
+          "patron": "VERSION_MOTOR",
+          "esperado": 0,
+          "descripcion": "VERSION_MOTOR no se usa",
+          "rango": [
+            1,
+            700
+          ],
+          "encontradas": 0
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [],
+      "estado_revision": "pendiente"
+    }
+  ],
+  "glosario": {
+    "v_sin": "registro del siniestro que se liquida",
+    "v_pol": "registro de la poliza del siniestro",
+    "v_cli": "registro del cliente (asegurado) de la poliza",
+    "v_cob": "cobertura contratada reclamada (limite, porcentaje, dias de carencia)",
+    "v_dias_denuncia": "dias calendario entre ocurrencia y denuncia",
+    "v_dias_desde_inicio": "dias entre inicio de la poliza y la ocurrencia (usado en carencia y fraude)",
+    "v_monto_base": "monto reclamado topado por el limite de la cobertura",
+    "v_deducible": "monto que el asegurado asume antes de la indemnizacion",
+    "v_cubierto": "monto que paga la aseguradora antes de retencion",
+    "v_retencion": "retencion impositiva sobre el monto cubierto",
+    "v_neto": "monto cubierto menos retencion; lo que se paga",
+    "v_suma_remanente": "suma asegurada menos lo cubierto en liquidaciones aprobadas o pendientes",
+    "v_umbral_fraude": "porcentaje del limite de cobertura que dispara la alerta de fraude",
+    "v_observaciones": "marcas de ajustes aplicados separadas por ';'",
+    "c_modo_debug": "constante que apaga trazas y notificaciones",
+    "DIAS_CARENCIA": "dias desde el inicio de la poliza en que la cobertura aun no esta activa",
+    "PRIMA_PENDIENTE": "prima vencida y no pagada (mora) de la poliza"
+  },
+  "tecnicos": {
+    "04_pkg_liquidacion_siniestros_body.sql:pr_enviar_notificacion": "utilidad de salida/notificacion: solo arma un texto y lo imprime; solo se invoca con modo debug desactivado (ver R-041)",
+    "04_pkg_liquidacion_siniestros_body.sql:pr_agregar_obs": "utilidad de formato del texto de observaciones (ver R-034)",
+    "04_pkg_liquidacion_siniestros_body.sql:fn_es_dia_habil": "funcion utilitaria sin llamadas (ver R-037)"
+  }
+}

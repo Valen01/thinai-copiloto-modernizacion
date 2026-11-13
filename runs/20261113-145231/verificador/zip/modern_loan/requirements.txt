@@ -1,0 +1,4 @@
+# Ejecucion: solo biblioteca estandar (Python 3.11+).
+# Pruebas y compuerta de calidad:
+pytest>=8.0
+PyYAML>=6.0

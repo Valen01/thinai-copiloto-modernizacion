@@ -1,0 +1,39 @@
+0001: /*******************************************************************************
+0002:  * SISTEMA      : SIGSE - Sistema Integral de Gestion de Seguros
+0003:  * MODULO       : SINIESTROS
+0004:  * ARCHIVO      : 02_parametros.sql
+0005:  * DESCRIPCION  : Carga de parametros de negocio utilizados por el paquete
+0006:  *                PKG_LIQUIDACION_SINIESTROS.
+0007:  ******************************************************************************/
+0008: 
+0009: -- Plazos de denuncia (dias calendario entre ocurrencia y denuncia)
+0010: INSERT INTO ls_parametros VALUES ('DIAS_MAX_DENUNCIA',        30,     NULL, 'Plazo maximo de denuncia (dias) - ramos generales');
+0011: INSERT INTO ls_parametros VALUES ('DIAS_MAX_DENUNCIA_VIDA',   365,    NULL, 'Plazo maximo de denuncia (dias) - ramo VIDA');
+0012: 
+0013: -- Deducibles
+0014: INSERT INTO ls_parametros VALUES ('DEDUCIBLE_MINIMO',         100,    NULL, 'Deducible minimo cuando el deducible es porcentual');
+0015: INSERT INTO ls_parametros VALUES ('PCT_DESCUENTO_DED_VIP',    50,     NULL, '% de descuento sobre el deducible para clientes VIP');
+0016: 
+0017: -- Morosidad
+0018: INSERT INTO ls_parametros VALUES ('TOLERANCIA_MORA_VIP',      500,    NULL, 'Monto de prima pendiente tolerado a clientes VIP');
+0019: 
+0020: -- Siniestralidad
+0021: INSERT INTO ls_parametros VALUES ('MAX_SINIESTROS_ANUAL',     3,      NULL, 'Cantidad de siniestros liquidados en 365 dias que activa penalizacion');
+0022: INSERT INTO ls_parametros VALUES ('PCT_PENALIZACION_SINIEST', 10,     NULL, '% de reduccion por alta siniestralidad');
+0023: 
+0024: -- Retencion impositiva
+0025: INSERT INTO ls_parametros VALUES ('UMBRAL_RETENCION',         10000,  NULL, 'Monto cubierto a partir del cual se aplica retencion');
+0026: INSERT INTO ls_parametros VALUES ('TASA_RETENCION',           2,      NULL, '% de retencion impositiva');
+0027: 
+0028: -- Aprobacion y fraude
+0029: INSERT INTO ls_parametros VALUES ('TOPE_AUTO_APROBACION',     50000,  NULL, 'Monto neto maximo para aprobacion automatica');
+0030: INSERT INTO ls_parametros VALUES ('DIAS_ALERTA_FRAUDE',       15,     NULL, 'Dias desde inicio de poliza para evaluar alerta de fraude');
+0031: INSERT INTO ls_parametros VALUES ('PCT_ALERTA_FRAUDE',        80,     NULL, '% del limite de cobertura que activa alerta de fraude');
+0032: 
+0033: -- Otros
+0034: INSERT INTO ls_parametros VALUES ('FACTOR_INFLACION',         1.035,  NULL, 'Factor de ajuste inflacionario de reservas');
+0035: INSERT INTO ls_parametros VALUES ('TASA_IVA',                 19,     NULL, 'Tasa de IVA vigente');
+0036: INSERT INTO ls_parametros VALUES ('VERSION_MOTOR',            NULL,   '3.2.0', 'Version del motor de liquidacion');
+0037: 
+0038: COMMIT;
+0039: 

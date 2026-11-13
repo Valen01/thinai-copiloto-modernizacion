@@ -1,0 +1,701 @@
+0001: CREATE OR REPLACE PACKAGE BODY pkg_liquidacion_siniestros AS
+0002: /*******************************************************************************
+0003:  * SISTEMA      : SIGSE - Sistema Integral de Gestion de Seguros
+0004:  * MODULO       : SINIESTROS
+0005:  * OBJETO       : PKG_LIQUIDACION_SINIESTROS (cuerpo)
+0006:  * DESCRIPCION  : Implementacion del motor de liquidacion de siniestros.
+0007:  *
+0008:  * FLUJO GENERAL DE LIQUIDACION (pr_liquidar_siniestro)
+0009:  * -----------------------------------------------------------------------------
+0010:  *   1. Validaciones de procedencia (cualquier fallo => RECHAZADO):
+0011:  *        a) Estado de la poliza.
+0012:  *        b) Ocurrencia dentro de la vigencia.
+0013:  *        c) Plazo de denuncia.
+0014:  *        d) Cobertura contratada.
+0015:  *        e) Periodo de carencia.
+0016:  *        f) Morosidad de prima.
+0017:  *   2. Calculo de la indemnizacion:
+0018:  *        a) Monto base (tope por limite de cobertura).
+0019:  *        b) Deducible (fijo / porcentual, minimo, beneficio VIP).
+0020:  *        c) Monto cubierto (% de cobertura).
+0021:  *        d) Penalizacion por siniestralidad.
+0022:  *        e) Tope por suma asegurada remanente.
+0023:  *        f) Retencion impositiva y monto neto.
+0024:  *   3. Determinacion del estado final:
+0025:  *        a) Alerta de fraude          => PENDIENTE_APROBACION.
+0026:  *        b) Supera tope automatico    => PENDIENTE_APROBACION.
+0027:  *        c) Caso contrario            => APROBADA.
+0028:  *
+0029:  * CODIGOS DE MOTIVO (LS_LIQUIDACIONES.MOTIVO)
+0030:  * -----------------------------------------------------------------------------
+0031:  *   LIQUIDACION_AUTOMATICA  Liquidacion aprobada sin intervencion.
+0032:  *   SUPERA_TOPE_AUTOMATICO  Neto mayor al tope de aprobacion automatica.
+0033:  *   SOSPECHA_FRAUDE         Siniestro con alerta de fraude.
+0034:  *   POLIZA_NO_VIGENTE       Poliza cancelada o suspendida.
+0035:  *   FUERA_DE_VIGENCIA       Ocurrencia fuera del periodo de vigencia.
+0036:  *   DENUNCIA_EXTEMPORANEA   Denuncia presentada fuera de plazo.
+0037:  *   COBERTURA_NO_CONTRATADA La poliza no tiene la cobertura reclamada.
+0038:  *   EN_PERIODO_CARENCIA     Ocurrencia dentro del periodo de carencia.
+0039:  *   PRIMA_EN_MORA           Poliza con prima pendiente de pago.
+0040:  *   BAJO_DEDUCIBLE          El monto cubierto resultante es <= 0.
+0041:  *   SUMA_ASEGURADA_AGOTADA  No queda suma asegurada disponible.
+0042:  *
+0043:  * MARCAS DE OBSERVACION (LS_LIQUIDACIONES.OBSERVACIONES, separadas por ';')
+0044:  * -----------------------------------------------------------------------------
+0045:  *   TOLERANCIA_MORA_VIP, LIMITE_COBERTURA, DEDUCIBLE_MINIMO, DESCUENTO_VIP,
+0046:  *   PENALIZACION_SINIESTRALIDAD, TOPE_SUMA_ASEGURADA, RETENCION_APLICADA
+0047:  *
+0048:  * CONVENCION DE REDONDEO
+0049:  * -----------------------------------------------------------------------------
+0050:  *   Todos los importes calculados se redondean a 2 decimales con ROUND
+0051:  *   (mitad hacia arriba) inmediatamente despues de cada operacion de
+0052:  *   porcentaje.
+0053:  ******************************************************************************/
+0054: 
+0055:     ----------------------------------------------------------------------------
+0056:     -- Tipos y constantes privadas
+0057:     ----------------------------------------------------------------------------
+0058:     TYPE t_tab_coberturas IS TABLE OF ls_coberturas%ROWTYPE INDEX BY PLS_INTEGER;
+0059: 
+0060:     c_modo_debug      CONSTANT BOOLEAN       := FALSE;
+0061:     c_separador_obs   CONSTANT VARCHAR2(1)   := ';';
+0062:     c_cat_vip         CONSTANT VARCHAR2(15)  := 'VIP';
+0063:     c_ramo_vida       CONSTANT VARCHAR2(10)  := 'VIDA';
+0064:     c_poliza_vigente  CONSTANT VARCHAR2(12)  := 'VIGENTE';
+0065: 
+0066:     e_monto_invalido  EXCEPTION;
+0067: 
+0068:     -- Siniestros de anos anteriores para recalculo de reservas.
+0069:     CURSOR cur_siniestros_historicos (p_anio NUMBER) IS
+0070:         SELECT s.siniestro_id, s.monto_reclamado
+0071:           FROM ls_siniestros s
+0072:          WHERE EXTRACT(YEAR FROM s.fecha_ocurrencia) < p_anio
+0073:            AND s.estado = 'LIQUIDADO';
+0074: 
+0075:     ----------------------------------------------------------------------------
+0076:     -- PR_LOG
+0077:     --   Registra un mensaje en la bitacora LS_LOG_PROCESO.
+0078:     --   Usa transaccion autonoma para que el log persista aun si la
+0079:     --   liquidacion del siniestro se revierte.
+0080:     ----------------------------------------------------------------------------
+0081:     PROCEDURE pr_log (
+0082:         p_nivel         IN VARCHAR2,
+0083:         p_siniestro_id  IN NUMBER,
+0084:         p_mensaje       IN VARCHAR2
+0085:     ) IS
+0086:         PRAGMA AUTONOMOUS_TRANSACTION;
+0087:     BEGIN
+0088:         INSERT INTO ls_log_proceso (log_id, fecha_log, nivel, siniestro_id, mensaje)
+0089:         VALUES (seq_ls_log.NEXTVAL, SYSDATE, p_nivel, p_siniestro_id, SUBSTR(p_mensaje, 1, 1000));
+0090:         COMMIT;
+0091:     END pr_log;
+0092: 
+0093:     ----------------------------------------------------------------------------
+0094:     -- FN_PARAM_NUM
+0095:     --   Obtiene el valor numerico de un parametro de negocio.
+0096:     --   Lanza ORA-20010 si el parametro no existe.
+0097:     ----------------------------------------------------------------------------
+0098:     FUNCTION fn_param_num (
+0099:         p_cod_parametro IN ls_parametros.cod_parametro%TYPE
+0100:     ) RETURN NUMBER IS
+0101:         v_valor  ls_parametros.valor_numerico%TYPE;
+0102:     BEGIN
+0103:         SELECT valor_numerico
+0104:           INTO v_valor
+0105:           FROM ls_parametros
+0106:          WHERE cod_parametro = p_cod_parametro;
+0107: 
+0108:         RETURN v_valor;
+0109:     EXCEPTION
+0110:         WHEN NO_DATA_FOUND THEN
+0111:             RAISE_APPLICATION_ERROR(-20010, 'Parametro no definido: ' || p_cod_parametro);
+0112:     END fn_param_num;
+0113: 
+0114:     ----------------------------------------------------------------------------
+0115:     -- PR_AGREGAR_OBS
+0116:     --   Agrega una marca al texto de observaciones de la liquidacion.
+0117:     ----------------------------------------------------------------------------
+0118:     PROCEDURE pr_agregar_obs (
+0119:         p_observaciones  IN OUT VARCHAR2,
+0120:         p_marca          IN     VARCHAR2
+0121:     ) IS
+0122:     BEGIN
+0123:         IF p_observaciones IS NULL THEN
+0124:             p_observaciones := p_marca;
+0125:         ELSE
+0126:             p_observaciones := p_observaciones || c_separador_obs || p_marca;
+0127:         END IF;
+0128:     END pr_agregar_obs;
+0129: 
+0130:     ----------------------------------------------------------------------------
+0131:     -- FN_ES_DIA_HABIL
+0132:     --   Indica si una fecha corresponde a un dia habil (lunes a viernes).
+0133:     ----------------------------------------------------------------------------
+0134:     FUNCTION fn_es_dia_habil (p_fecha IN DATE) RETURN BOOLEAN IS
+0135:         v_dia  VARCHAR2(3);
+0136:     BEGIN
+0137:         v_dia := TO_CHAR(p_fecha, 'DY', 'NLS_DATE_LANGUAGE=ENGLISH');
+0138:         RETURN v_dia NOT IN ('SAT', 'SUN');
+0139:     END fn_es_dia_habil;
+0140: 
+0141:     ----------------------------------------------------------------------------
+0142:     -- FN_CALCULAR_DEDUCIBLE_V1
+0143:     --   Calculo de deducible (version 2009).
+0144:     --   Deducible fijo o porcentual sobre el monto reclamado, sin minimo.
+0145:     ----------------------------------------------------------------------------
+0146:     FUNCTION fn_calcular_deducible_v1 (
+0147:         p_deducible_tipo   IN VARCHAR2,
+0148:         p_deducible_valor  IN NUMBER,
+0149:         p_monto_reclamado  IN NUMBER
+0150:     ) RETURN NUMBER IS
+0151:         v_deducible  NUMBER := 0;
+0152:     BEGIN
+0153:         IF p_deducible_tipo = 'FIJO' THEN
+0154:             v_deducible := p_deducible_valor;
+0155:         ELSIF p_deducible_tipo = 'PORCENTAJE' THEN
+0156:             v_deducible := p_monto_reclamado * p_deducible_valor / 100;
+0157:         END IF;
+0158: 
+0159:         RETURN TRUNC(v_deducible, 2);
+0160: 
+0161:         -- Ajuste por moneda extranjera
+0162:         v_deducible := v_deducible * 1.0;
+0163:         RETURN v_deducible;
+0164:     END fn_calcular_deducible_v1;
+0165: 
+0166:     ----------------------------------------------------------------------------
+0167:     -- FN_CALCULAR_DEDUCIBLE
+0168:     --   Calcula el deducible aplicable a un siniestro.
+0169:     --
+0170:     --   * Deducible FIJO       : se toma el valor fijo de la poliza.
+0171:     --   * Deducible PORCENTAJE : % sobre el MONTO BASE (no sobre el reclamado),
+0172:     --                            redondeado a 2 decimales. Si el resultado es
+0173:     --                            menor al parametro DEDUCIBLE_MINIMO se aplica
+0174:     --                            el minimo (marca DEDUCIBLE_MINIMO).
+0175:     --   * Cliente VIP          : si el deducible resultante es > 0 se reduce en
+0176:     --                            PCT_DESCUENTO_DED_VIP % (marca DESCUENTO_VIP).
+0177:     --                            El descuento se aplica DESPUES del minimo.
+0178:     ----------------------------------------------------------------------------
+0179:     FUNCTION fn_calcular_deducible (
+0180:         p_poliza         IN            ls_polizas%ROWTYPE,
+0181:         p_categoria_cli  IN            ls_clientes.categoria%TYPE,
+0182:         p_monto_base     IN            NUMBER,
+0183:         p_observaciones  IN OUT NOCOPY VARCHAR2
+0184:     ) RETURN NUMBER IS
+0185:         v_deducible      NUMBER(14,2);
+0186:         v_ded_minimo     NUMBER;
+0187:         v_pct_desc_vip   NUMBER;
+0188:     BEGIN
+0189:         IF p_poliza.deducible_tipo = 'FIJO' THEN
+0190:             v_deducible := p_poliza.deducible_valor;
+0191:         ELSE
+0192:             v_ded_minimo := fn_param_num('DEDUCIBLE_MINIMO');
+0193:             v_deducible  := ROUND(p_monto_base * p_poliza.deducible_valor / 100, 2);
+0194: 
+0195:             IF v_deducible < v_ded_minimo THEN
+0196:                 v_deducible := v_ded_minimo;
+0197:                 pr_agregar_obs(p_observaciones, 'DEDUCIBLE_MINIMO');
+0198:             END IF;
+0199:         END IF;
+0200: 
+0201:         IF p_categoria_cli = c_cat_vip AND v_deducible > 0 THEN
+0202:             v_pct_desc_vip := fn_param_num('PCT_DESCUENTO_DED_VIP');
+0203:             v_deducible    := ROUND(v_deducible * (100 - v_pct_desc_vip) / 100, 2);
+0204:             pr_agregar_obs(p_observaciones, 'DESCUENTO_VIP');
+0205:         END IF;
+0206: 
+0207:         RETURN v_deducible;
+0208:     END fn_calcular_deducible;
+0209: 
+0210:     ----------------------------------------------------------------------------
+0211:     -- FN_CALCULAR_IVA
+0212:     --   Calcula el IVA sobre un monto segun el parametro TASA_IVA.
+0213:     ----------------------------------------------------------------------------
+0214:     FUNCTION fn_calcular_iva (p_monto IN NUMBER) RETURN NUMBER IS
+0215:         v_tasa  NUMBER;
+0216:     BEGIN
+0217:         v_tasa := fn_param_num('TASA_IVA');
+0218:         RETURN ROUND(p_monto * v_tasa / 100, 2);
+0219:     END fn_calcular_iva;
+0220: 
+0221:     ----------------------------------------------------------------------------
+0222:     -- PR_RECALCULAR_RESERVA_TECNICA
+0223:     --   Recalcula la reserva tecnica de siniestros historicos aplicando el
+0224:     --   factor de inflacion, y la deja en LS_TMP_CALCULO_2009.
+0225:     ----------------------------------------------------------------------------
+0226:     PROCEDURE pr_recalcular_reserva_tecnica (p_anio IN NUMBER) IS
+0227:         v_factor  NUMBER;
+0228:     BEGIN
+0229:         v_factor := fn_param_num('FACTOR_INFLACION');
+0230: 
+0231:         DELETE FROM ls_tmp_calculo_2009;
+0232: 
+0233:         FOR r IN cur_siniestros_historicos(p_anio) LOOP
+0234:             INSERT INTO ls_tmp_calculo_2009 (siniestro_id, reserva_tecnica, fecha_calculo)
+0235:             VALUES (r.siniestro_id, ROUND(r.monto_reclamado * v_factor, 2), SYSDATE);
+0236:         END LOOP;
+0237:     END pr_recalcular_reserva_tecnica;
+0238: 
+0239:     ----------------------------------------------------------------------------
+0240:     -- PR_ENVIAR_NOTIFICACION
+0241:     --   Notifica al asegurado el resultado de la liquidacion.
+0242:     ----------------------------------------------------------------------------
+0243:     PROCEDURE pr_enviar_notificacion (
+0244:         p_siniestro_id  IN NUMBER,
+0245:         p_estado        IN VARCHAR2
+0246:     ) IS
+0247:         v_mensaje  VARCHAR2(500);
+0248:     BEGIN
+0249:         v_mensaje := 'Su siniestro ' || p_siniestro_id || ' fue ' || LOWER(p_estado);
+0250:         -- UTL_MAIL.SEND(sender => 'siniestros@aseguradora.com', recipients => ..., message => v_mensaje);
+0251:         DBMS_OUTPUT.PUT_LINE('[NOTIFICACION] ' || v_mensaje);
+0252:     END pr_enviar_notificacion;
+0253: 
+0254:     ----------------------------------------------------------------------------
+0255:     -- PR_REGISTRAR_RESULTADO
+0256:     --   Inserta la liquidacion y actualiza el estado del siniestro.
+0257:     ----------------------------------------------------------------------------
+0258:     PROCEDURE pr_registrar_resultado (
+0259:         p_siniestro       IN ls_siniestros%ROWTYPE,
+0260:         p_fecha_proceso   IN DATE,
+0261:         p_monto_base      IN NUMBER,
+0262:         p_deducible       IN NUMBER,
+0263:         p_cubierto        IN NUMBER,
+0264:         p_retencion       IN NUMBER,
+0265:         p_neto            IN NUMBER,
+0266:         p_estado_liq      IN VARCHAR2,
+0267:         p_motivo          IN VARCHAR2,
+0268:         p_observaciones   IN VARCHAR2
+0269:     ) IS
+0270:         v_estado_sin  ls_siniestros.estado%TYPE;
+0271:     BEGIN
+0272:         INSERT INTO ls_liquidaciones (
+0273:             liquidacion_id, siniestro_id, fecha_liquidacion, monto_reclamado,
+0274:             monto_base, monto_deducible, monto_cubierto, monto_retencion,
+0275:             monto_neto, estado, motivo, observaciones, usuario_proceso
+0276:         ) VALUES (
+0277:             seq_ls_liquidacion.NEXTVAL, p_siniestro.siniestro_id, p_fecha_proceso,
+0278:             p_siniestro.monto_reclamado, p_monto_base, p_deducible, p_cubierto,
+0279:             p_retencion, p_neto, p_estado_liq, p_motivo, p_observaciones, USER
+0280:         );
+0281: 
+0282:         -- Correspondencia estado liquidacion -> estado siniestro
+0283:         v_estado_sin := CASE p_estado_liq
+0284:                             WHEN c_liq_aprobada   THEN c_sin_liquidado
+0285:                             WHEN c_liq_rechazada  THEN c_sin_rechazado
+0286:                             WHEN c_liq_pend_aprob THEN c_sin_pend_revision
+0287:                         END;
+0288: 
+0289:         UPDATE ls_siniestros
+0290:            SET estado = v_estado_sin
+0291:          WHERE siniestro_id = p_siniestro.siniestro_id;
+0292: 
+0293:         pr_log('INFO', p_siniestro.siniestro_id,
+0294:                'Resultado: ' || p_estado_liq || ' / ' || p_motivo ||
+0295:                ' / neto=' || TO_CHAR(p_neto, 'FM999999990.00'));
+0296:     END pr_registrar_resultado;
+0297: 
+0298:     ----------------------------------------------------------------------------
+0299:     -- PR_RECHAZAR
+0300:     --   Registra un rechazo: liquidacion con importes en cero, estado
+0301:     --   RECHAZADA y el motivo indicado. El siniestro pasa a RECHAZADO.
+0302:     ----------------------------------------------------------------------------
+0303:     PROCEDURE pr_rechazar (
+0304:         p_siniestro      IN ls_siniestros%ROWTYPE,
+0305:         p_fecha_proceso  IN DATE,
+0306:         p_motivo         IN VARCHAR2,
+0307:         p_observaciones  IN VARCHAR2 DEFAULT NULL
+0308:     ) IS
+0309:     BEGIN
+0310:         pr_registrar_resultado(
+0311:             p_siniestro     => p_siniestro,
+0312:             p_fecha_proceso => p_fecha_proceso,
+0313:             p_monto_base    => 0,
+0314:             p_deducible     => 0,
+0315:             p_cubierto      => 0,
+0316:             p_retencion     => 0,
+0317:             p_neto          => 0,
+0318:             p_estado_liq    => c_liq_rechazada,
+0319:             p_motivo        => p_motivo,
+0320:             p_observaciones => p_observaciones
+0321:         );
+0322:     END pr_rechazar;
+0323: 
+0324:     ----------------------------------------------------------------------------
+0325:     -- PR_LIQUIDAR_SINIESTRO  (publico)
+0326:     ----------------------------------------------------------------------------
+0327:     PROCEDURE pr_liquidar_siniestro (
+0328:         p_siniestro_id   IN ls_siniestros.siniestro_id%TYPE,
+0329:         p_fecha_proceso  IN DATE
+0330:     ) IS
+0331:         v_sin                ls_siniestros%ROWTYPE;
+0332:         v_pol                ls_polizas%ROWTYPE;
+0333:         v_cli                ls_clientes%ROWTYPE;
+0334:         v_cob                ls_coberturas%ROWTYPE;
+0335: 
+0336:         v_dias_denuncia      NUMBER;
+0337:         v_dias_max_denuncia  NUMBER;
+0338:         v_dias_desde_inicio  NUMBER;
+0339:         v_tolerancia_mora    NUMBER;
+0340:         v_cant_siniestros    NUMBER;
+0341:         v_total_indemnizado  NUMBER;
+0342:         v_suma_remanente     NUMBER;
+0343:         v_umbral_fraude      NUMBER;
+0344: 
+0345:         v_monto_base         NUMBER(14,2) := 0;
+0346:         v_deducible          NUMBER(14,2) := 0;
+0347:         v_cubierto           NUMBER(14,2) := 0;
+0348:         v_retencion          NUMBER(14,2) := 0;
+0349:         v_neto               NUMBER(14,2) := 0;
+0350:         v_estado_liq         ls_liquidaciones.estado%TYPE;
+0351:         v_motivo             ls_liquidaciones.motivo%TYPE;
+0352:         v_observaciones      VARCHAR2(400);
+0353: 
+0354:         v_factor_inflacion   NUMBER;
+0355:         v_contador_aux       PLS_INTEGER := 0;
+0356:         v_fecha_proceso_ant  DATE;
+0357:     BEGIN
+0358:         ------------------------------------------------------------------------
+0359:         -- Carga de datos del siniestro, poliza y cliente
+0360:         ------------------------------------------------------------------------
+0361:         SELECT *
+0362:           INTO v_sin
+0363:           FROM ls_siniestros
+0364:          WHERE siniestro_id = p_siniestro_id
+0365:            FOR UPDATE;
+0366: 
+0367:         IF v_sin.estado <> c_sin_registrado THEN
+0368:             RAISE_APPLICATION_ERROR(-20001,
+0369:                 'El siniestro ' || p_siniestro_id || ' no esta en estado REGISTRADO (' || v_sin.estado || ')');
+0370:         END IF;
+0371: 
+0372:         SELECT * INTO v_pol FROM ls_polizas  WHERE poliza_id  = v_sin.poliza_id;
+0373:         SELECT * INTO v_cli FROM ls_clientes WHERE cliente_id = v_pol.cliente_id;
+0374: 
+0375:         v_factor_inflacion := fn_param_num('FACTOR_INFLACION');
+0376: 
+0377:         IF c_modo_debug THEN
+0378:             DBMS_OUTPUT.PUT_LINE('DEBUG siniestro=' || v_sin.siniestro_id ||
+0379:                                  ' poliza=' || v_pol.numero_poliza ||
+0380:                                  ' cliente=' || v_cli.nombre);
+0381:         END IF;
+0382: 
+0383:         ------------------------------------------------------------------------
+0384:         -- 1.a  Estado de la poliza: solo se liquidan polizas VIGENTES.
+0385:         ------------------------------------------------------------------------
+0386:         IF v_pol.estado <> c_poliza_vigente THEN
+0387:             pr_rechazar(v_sin, p_fecha_proceso, 'POLIZA_NO_VIGENTE');
+0388:             RETURN;
+0389:         END IF;
+0390: 
+0391:         ------------------------------------------------------------------------
+0392:         -- 1.b  La fecha de ocurrencia debe estar dentro de la vigencia
+0393:         --      [fecha_inicio, fecha_fin] (ambos extremos inclusive).
+0394:         ------------------------------------------------------------------------
+0395:         IF v_sin.fecha_ocurrencia < v_pol.fecha_inicio
+0396:            OR v_sin.fecha_ocurrencia > v_pol.fecha_fin
+0397:         THEN
+0398:             pr_rechazar(v_sin, p_fecha_proceso, 'FUERA_DE_VIGENCIA');
+0399:             RETURN;
+0400:         END IF;
+0401: 
+0402:         ------------------------------------------------------------------------
+0403:         -- 1.c  Plazo de denuncia: dias entre ocurrencia y denuncia no puede
+0404:         --      superar DIAS_MAX_DENUNCIA (VIDA: DIAS_MAX_DENUNCIA_VIDA).
+0405:         --      El dia limite es inclusive.
+0406:         ------------------------------------------------------------------------
+0407:         v_dias_denuncia := TRUNC(v_sin.fecha_denuncia) - TRUNC(v_sin.fecha_ocurrencia);
+0408: 
+0409:         IF v_pol.ramo = c_ramo_vida THEN
+0410:             v_dias_max_denuncia := fn_param_num('DIAS_MAX_DENUNCIA_VIDA');
+0411:         ELSE
+0412:             v_dias_max_denuncia := fn_param_num('DIAS_MAX_DENUNCIA');
+0413:         END IF;
+0414: 
+0415:         IF v_dias_denuncia > v_dias_max_denuncia THEN
+0416:             pr_rechazar(v_sin, p_fecha_proceso, 'DENUNCIA_EXTEMPORANEA');
+0417:             RETURN;
+0418:         END IF;
+0419: 
+0420:         ------------------------------------------------------------------------
+0421:         -- 1.d  La cobertura reclamada debe estar contratada en la poliza.
+0422:         ------------------------------------------------------------------------
+0423:         BEGIN
+0424:             SELECT *
+0425:               INTO v_cob
+0426:               FROM ls_coberturas
+0427:              WHERE poliza_id     = v_sin.poliza_id
+0428:                AND cod_cobertura = v_sin.cod_cobertura;
+0429:         EXCEPTION
+0430:             WHEN NO_DATA_FOUND THEN
+0431:                 pr_rechazar(v_sin, p_fecha_proceso, 'COBERTURA_NO_CONTRATADA');
+0432:                 RETURN;
+0433:         END;
+0434: 
+0435:         ------------------------------------------------------------------------
+0436:         -- 1.e  Periodo de carencia: la cobertura se activa cuando han
+0437:         --      transcurrido al menos DIAS_CARENCIA dias desde el inicio de la
+0438:         --      poliza hasta la ocurrencia.
+0439:         ------------------------------------------------------------------------
+0440:         v_dias_desde_inicio := TRUNC(v_sin.fecha_ocurrencia) - TRUNC(v_pol.fecha_inicio);
+0441: 
+0442:         IF v_dias_desde_inicio < v_cob.dias_carencia THEN
+0443:             pr_rechazar(v_sin, p_fecha_proceso, 'EN_PERIODO_CARENCIA');
+0444:             RETURN;
+0445:         END IF;
+0446: 
+0447:         ------------------------------------------------------------------------
+0448:         -- 1.f  Morosidad: con prima pendiente > 0 se rechaza, salvo clientes
+0449:         --      VIP cuya deuda sea <= TOLERANCIA_MORA_VIP.
+0450:         ------------------------------------------------------------------------
+0451:         IF v_pol.prima_pendiente > 0 THEN
+0452:             v_tolerancia_mora := fn_param_num('TOLERANCIA_MORA_VIP');
+0453: 
+0454:             IF v_cli.categoria = c_cat_vip
+0455:                AND v_pol.prima_pendiente <= v_tolerancia_mora
+0456:             THEN
+0457:                 pr_agregar_obs(v_observaciones, 'TOLERANCIA_MORA_VIP');
+0458:             ELSE
+0459:                 pr_rechazar(v_sin, p_fecha_proceso, 'PRIMA_EN_MORA', v_observaciones);
+0460:                 RETURN;
+0461:             END IF;
+0462:         END IF;
+0463: 
+0464:         -- Polizas suspendidas: registrar advertencia en bitacora
+0465:         IF v_pol.estado = 'SUSPENDIDA' THEN
+0466:             pr_log('WARN', v_sin.siniestro_id, 'Poliza suspendida: ' || v_pol.numero_poliza);
+0467:             v_contador_aux := v_contador_aux + 1;
+0468:         END IF;
+0469: 
+0470:         /*
+0471:         -- SIN-0001 (2009): calculo original, reemplazado en SIN-0310
+0472:         v_monto_base := v_sin.monto_reclamado;
+0473:         v_deducible  := fn_calcular_deducible_v1(v_pol.deducible_tipo,
+0474:                                                  v_pol.deducible_valor,
+0475:                                                  v_sin.monto_reclamado);
+0476:         v_cubierto   := v_monto_base - v_deducible;
+0477:         IF v_cubierto > v_pol.suma_asegurada THEN
+0478:             v_cubierto := v_pol.suma_asegurada;
+0479:         END IF;
+0480:         v_neto := v_cubierto;
+0481:         */
+0482: 
+0483:         ------------------------------------------------------------------------
+0484:         -- 2.a  Monto base: el menor entre lo reclamado y el limite de la
+0485:         --      cobertura (marca LIMITE_COBERTURA si se topa).
+0486:         ------------------------------------------------------------------------
+0487:         IF v_sin.monto_reclamado > v_cob.limite_cobertura THEN
+0488:             v_monto_base := v_cob.limite_cobertura;
+0489:             pr_agregar_obs(v_observaciones, 'LIMITE_COBERTURA');
+0490:         ELSE
+0491:             v_monto_base := v_sin.monto_reclamado;
+0492:         END IF;
+0493: 
+0494:         ------------------------------------------------------------------------
+0495:         -- 2.b  Deducible (ver fn_calcular_deducible).
+0496:         ------------------------------------------------------------------------
+0497:         v_deducible := fn_calcular_deducible(v_pol, v_cli.categoria, v_monto_base, v_observaciones);
+0498: 
+0499:         ------------------------------------------------------------------------
+0500:         -- 2.c  Monto cubierto = (monto base - deducible) * % cobertura.
+0501:         --      Si el resultado es <= 0, se rechaza por BAJO_DEDUCIBLE.
+0502:         ------------------------------------------------------------------------
+0503:         v_cubierto := ROUND((v_monto_base - v_deducible) * v_cob.porcentaje_cobertura / 100, 2);
+0504: 
+0505:         IF v_cubierto <= 0 THEN
+0506:             pr_rechazar(v_sin, p_fecha_proceso, 'BAJO_DEDUCIBLE', v_observaciones);
+0507:             RETURN;
+0508:         END IF;
+0509: 
+0510:         IF v_cubierto < 0 THEN
+0511:             v_cubierto := 0;
+0512:             RAISE e_monto_invalido;
+0513:         END IF;
+0514: 
+0515:         ------------------------------------------------------------------------
+0516:         -- 2.d  Siniestralidad: si la poliza registra MAX_SINIESTROS_ANUAL o
+0517:         --      mas siniestros LIQUIDADOS con ocurrencia en los 365 dias
+0518:         --      previos a la ocurrencia actual, se reduce el monto cubierto
+0519:         --      en PCT_PENALIZACION_SINIEST %.
+0520:         ------------------------------------------------------------------------
+0521:         SELECT COUNT(*)
+0522:           INTO v_cant_siniestros
+0523:           FROM ls_siniestros s
+0524:          WHERE s.poliza_id         = v_sin.poliza_id
+0525:            AND s.siniestro_id     <> v_sin.siniestro_id
+0526:            AND s.estado            = c_sin_liquidado
+0527:            AND s.fecha_ocurrencia >= v_sin.fecha_ocurrencia - 365
+0528:            AND s.fecha_ocurrencia <  v_sin.fecha_ocurrencia;
+0529: 
+0530:         IF v_cant_siniestros >= fn_param_num('MAX_SINIESTROS_ANUAL') THEN
+0531:             v_cubierto := ROUND(v_cubierto * (100 - fn_param_num('PCT_PENALIZACION_SINIEST')) / 100, 2);
+0532:             pr_agregar_obs(v_observaciones, 'PENALIZACION_SINIESTRALIDAD');
+0533:         END IF;
+0534: 
+0535:         ------------------------------------------------------------------------
+0536:         -- 2.e  Suma asegurada remanente = suma asegurada - suma de montos
+0537:         --      cubiertos de liquidaciones APROBADAS o PENDIENTES de la poliza.
+0538:         --      Si no hay remanente se rechaza; si el cubierto lo excede se
+0539:         --      topa al remanente (marca TOPE_SUMA_ASEGURADA).
+0540:         ------------------------------------------------------------------------
+0541:         SELECT NVL(SUM(l.monto_cubierto), 0)
+0542:           INTO v_total_indemnizado
+0543:           FROM ls_liquidaciones l
+0544:           JOIN ls_siniestros    s ON s.siniestro_id = l.siniestro_id
+0545:          WHERE s.poliza_id = v_sin.poliza_id
+0546:            AND l.estado IN (c_liq_aprobada, c_liq_pend_aprob);
+0547: 
+0548:         v_suma_remanente := v_pol.suma_asegurada - v_total_indemnizado;
+0549: 
+0550:         IF v_suma_remanente <= 0 THEN
+0551:             pr_rechazar(v_sin, p_fecha_proceso, 'SUMA_ASEGURADA_AGOTADA', v_observaciones);
+0552:             RETURN;
+0553:         END IF;
+0554: 
+0555:         IF v_cubierto > v_suma_remanente THEN
+0556:             v_cubierto := v_suma_remanente;
+0557:             pr_agregar_obs(v_observaciones, 'TOPE_SUMA_ASEGURADA');
+0558:         END IF;
+0559: 
+0560:         ------------------------------------------------------------------------
+0561:         -- 2.f  Retencion impositiva: si el ramo no es VIDA y el monto
+0562:         --      cubierto supera UMBRAL_RETENCION, se retiene TASA_RETENCION %.
+0563:         --      Neto = cubierto - retencion.
+0564:         ------------------------------------------------------------------------
+0565:         IF v_pol.ramo <> c_ramo_vida
+0566:            AND v_cubierto > fn_param_num('UMBRAL_RETENCION')
+0567:         THEN
+0568:             v_retencion := ROUND(v_cubierto * fn_param_num('TASA_RETENCION') / 100, 2);
+0569:             pr_agregar_obs(v_observaciones, 'RETENCION_APLICADA');
+0570:         ELSE
+0571:             v_retencion := 0;
+0572:         END IF;
+0573: 
+0574:         v_neto := v_cubierto - v_retencion;
+0575: 
+0576:         ------------------------------------------------------------------------
+0577:         -- 3.  Estado final
+0578:         --   a) Fraude: ocurrencia dentro de los primeros DIAS_ALERTA_FRAUDE
+0579:         --      dias de la poliza y reclamo >= PCT_ALERTA_FRAUDE % del limite
+0580:         --      de la cobertura => PENDIENTE_APROBACION / SOSPECHA_FRAUDE.
+0581:         --   b) Neto > TOPE_AUTO_APROBACION
+0582:         --      => PENDIENTE_APROBACION / SUPERA_TOPE_AUTOMATICO.
+0583:         --   c) Resto => APROBADA / LIQUIDACION_AUTOMATICA.
+0584:         --   La regla de fraude tiene prioridad sobre la de tope.
+0585:         ------------------------------------------------------------------------
+0586:         v_umbral_fraude := ROUND(v_cob.limite_cobertura * fn_param_num('PCT_ALERTA_FRAUDE') / 100, 2);
+0587: 
+0588:         IF v_dias_desde_inicio <= fn_param_num('DIAS_ALERTA_FRAUDE')
+0589:            AND v_sin.monto_reclamado >= v_umbral_fraude
+0590:         THEN
+0591:             v_estado_liq := c_liq_pend_aprob;
+0592:             v_motivo     := 'SOSPECHA_FRAUDE';
+0593:         ELSIF v_neto > fn_param_num('TOPE_AUTO_APROBACION') THEN
+0594:             v_estado_liq := c_liq_pend_aprob;
+0595:             v_motivo     := 'SUPERA_TOPE_AUTOMATICO';
+0596:         ELSE
+0597:             v_estado_liq := c_liq_aprobada;
+0598:             v_motivo     := 'LIQUIDACION_AUTOMATICA';
+0599:         END IF;
+0600: 
+0601:         pr_registrar_resultado(
+0602:             p_siniestro     => v_sin,
+0603:             p_fecha_proceso => p_fecha_proceso,
+0604:             p_monto_base    => v_monto_base,
+0605:             p_deducible     => v_deducible,
+0606:             p_cubierto      => v_cubierto,
+0607:             p_retencion     => v_retencion,
+0608:             p_neto          => v_neto,
+0609:             p_estado_liq    => v_estado_liq,
+0610:             p_motivo        => v_motivo,
+0611:             p_observaciones => v_observaciones
+0612:         );
+0613: 
+0614:         IF c_modo_debug THEN
+0615:             pr_enviar_notificacion(v_sin.siniestro_id, v_estado_liq);
+0616:         END IF;
+0617:     END pr_liquidar_siniestro;
+0618: 
+0619:     ----------------------------------------------------------------------------
+0620:     -- PR_PROCESAR_LOTE  (publico)
+0621:     ----------------------------------------------------------------------------
+0622:     PROCEDURE pr_procesar_lote (
+0623:         p_fecha_proceso  IN DATE DEFAULT TRUNC(SYSDATE)
+0624:     ) IS
+0625:         CURSOR cur_pendientes IS
+0626:             SELECT s.siniestro_id, s.monto_reclamado
+0627:               FROM ls_siniestros s
+0628:              WHERE s.estado = c_sin_registrado
+0629:                AND s.fecha_denuncia <= p_fecha_proceso
+0630:              ORDER BY s.siniestro_id;
+0631: 
+0632:         v_estado_final     ls_siniestros.estado%TYPE;
+0633:         v_cant_procesados  PLS_INTEGER  := 0;
+0634:         v_cant_liquidados  PLS_INTEGER  := 0;
+0635:         v_cant_rechazados  PLS_INTEGER  := 0;
+0636:         v_cant_pendientes  PLS_INTEGER  := 0;
+0637:         v_cant_errores     PLS_INTEGER  := 0;
+0638:         v_total_neto_aprob NUMBER(16,2) := 0;
+0639:         v_total_reclamado  NUMBER(16,2) := 0;
+0640:         v_neto_sin         NUMBER(14,2);
+0641:     BEGIN
+0642:         pr_log('INFO', NULL, 'Inicio lote de liquidacion. Fecha proceso: ' ||
+0643:                              TO_CHAR(p_fecha_proceso, 'YYYY-MM-DD'));
+0644: 
+0645:         FOR r IN cur_pendientes LOOP
+0646:             v_cant_procesados := v_cant_procesados + 1;
+0647:             v_total_reclamado := v_total_reclamado + r.monto_reclamado;
+0648: 
+0649:             SAVEPOINT sp_siniestro;
+0650:             BEGIN
+0651:                 pr_liquidar_siniestro(r.siniestro_id, p_fecha_proceso);
+0652: 
+0653:                 SELECT estado INTO v_estado_final
+0654:                   FROM ls_siniestros
+0655:                  WHERE siniestro_id = r.siniestro_id;
+0656: 
+0657:                 IF v_estado_final = c_sin_liquidado THEN
+0658:                     v_cant_liquidados := v_cant_liquidados + 1;
+0659: 
+0660:                     SELECT monto_neto INTO v_neto_sin
+0661:                       FROM ls_liquidaciones
+0662:                      WHERE siniestro_id = r.siniestro_id
+0663:                        AND estado       = c_liq_aprobada;
+0664: 
+0665:                     v_total_neto_aprob := v_total_neto_aprob + v_neto_sin;
+0666:                 ELSIF v_estado_final = c_sin_rechazado THEN
+0667:                     v_cant_rechazados := v_cant_rechazados + 1;
+0668:                 ELSIF v_estado_final = c_sin_pend_revision THEN
+0669:                     v_cant_pendientes := v_cant_pendientes + 1;
+0670:                 END IF;
+0671:             EXCEPTION
+0672:                 WHEN OTHERS THEN
+0673:                     ROLLBACK TO sp_siniestro;
+0674:                     v_cant_errores := v_cant_errores + 1;
+0675:                     pr_log('ERROR', r.siniestro_id, SQLERRM);
+0676:             END;
+0677:         END LOOP;
+0678: 
+0679:         COMMIT;
+0680: 
+0681:         pr_log('INFO', NULL, 'Fin lote. Procesados=' || v_cant_procesados ||
+0682:                              ' Liquidados=' || v_cant_liquidados ||
+0683:                              ' Rechazados=' || v_cant_rechazados ||
+0684:                              ' Pendientes=' || v_cant_pendientes ||
+0685:                              ' Errores=' || v_cant_errores);
+0686: 
+0687:         DBMS_OUTPUT.PUT_LINE('=========================================');
+0688:         DBMS_OUTPUT.PUT_LINE(' RESUMEN LOTE DE LIQUIDACION');
+0689:         DBMS_OUTPUT.PUT_LINE(' Fecha de proceso   : ' || TO_CHAR(p_fecha_proceso, 'YYYY-MM-DD'));
+0690:         DBMS_OUTPUT.PUT_LINE(' Procesados         : ' || v_cant_procesados);
+0691:         DBMS_OUTPUT.PUT_LINE(' Liquidados         : ' || v_cant_liquidados);
+0692:         DBMS_OUTPUT.PUT_LINE(' Rechazados         : ' || v_cant_rechazados);
+0693:         DBMS_OUTPUT.PUT_LINE(' Pendientes revision: ' || v_cant_pendientes);
+0694:         DBMS_OUTPUT.PUT_LINE(' Errores            : ' || v_cant_errores);
+0695:         DBMS_OUTPUT.PUT_LINE(' Total neto aprobado: ' || TO_CHAR(v_total_neto_aprob, 'FM999999990.00'));
+0696:         DBMS_OUTPUT.PUT_LINE('=========================================');
+0697:     END pr_procesar_lote;
+0698: 
+0699: END pkg_liquidacion_siniestros;
+0700: /
+0701: 

@@ -1,0 +1,65 @@
+{
+ "run_id": "20261113-145231",
+ "status": "done",
+ "error": null,
+ "stages": [
+  {
+   "id": "extract",
+   "name": "1. Extractor de reglas",
+   "status": "done",
+   "detail": "terminada (reconstruida desde los archivos)",
+   "secs": null
+  },
+  {
+   "id": "auto",
+   "name": "2. Aprobación automática",
+   "status": "done",
+   "detail": "terminada (reconstruida desde los archivos)",
+   "secs": null
+  },
+  {
+   "id": "validate",
+   "name": "3. Validador (PO bancario)",
+   "status": "done",
+   "detail": "terminada (reconstruida desde los archivos)",
+   "secs": null
+  },
+  {
+   "id": "generate",
+   "name": "4. Generador de código",
+   "status": "done",
+   "detail": "compuerta APROBADA · RESULTADO: APROBADA",
+   "secs": 192
+  },
+  {
+   "id": "verify",
+   "name": "5. Verificador de equivalencia",
+   "status": "done",
+   "detail": "EQUIVALENTE POR LECTURA (no demostrado por ejecucion del legacy)",
+   "secs": 369
+  }
+ ],
+ "metrics": {
+  "reglas_extraidas": 45,
+  "aprobacion_automatica": {
+   "aprobada_automatica": 16,
+   "requiere_revision_humana": 16,
+   "hallazgo_tecnico": 13
+  },
+  "compuerta": "RESULTADO: APROBADA"
+ },
+ "verdict": "EQUIVALENTE POR LECTURA (no demostrado por ejecucion del legacy)",
+ "outputs": {
+  "zip": true,
+  "report": true
+ },
+ "usage": {
+  "in": 132,
+  "out": 73189,
+  "cache": 5377379
+ },
+ "segunda_ok": true,
+ "segunda": true,
+ "model": "claude-sonnet-5-5",
+ "updated": 1794602937.642373
+}

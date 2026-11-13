@@ -1,0 +1,78 @@
+0001: CREATE OR REPLACE PACKAGE pkg_liquidacion_siniestros AS
+0002: /*******************************************************************************
+0003:  * SISTEMA      : SIGSE - Sistema Integral de Gestion de Seguros
+0004:  * MODULO       : SINIESTROS
+0005:  * OBJETO       : PKG_LIQUIDACION_SINIESTROS (especificacion)
+0006:  * DESCRIPCION  : Motor de liquidacion de siniestros. Evalua la procedencia de
+0007:  *                cada siniestro registrado, calcula la indemnizacion a pagar
+0008:  *                (monto base, deducible, monto cubierto, retencion y neto) y
+0009:  *                determina su estado final (aprobado, rechazado o pendiente
+0010:  *                de aprobacion manual).
+0011:  *
+0012:  * DEPENDENCIAS : LS_SINIESTROS, LS_POLIZAS, LS_CLIENTES, LS_COBERTURAS,
+0013:  *                LS_LIQUIDACIONES, LS_PARAMETROS, LS_LOG_PROCESO,
+0014:  *                SEQ_LS_LIQUIDACION, SEQ_LS_LOG.
+0015:  * -----------------------------------------------------------------------------
+0016:  * HISTORIAL DE CAMBIOS
+0017:  * Fecha       Autor        Ticket     Descripcion
+0018:  * ----------  -----------  ---------  -----------------------------------------
+0019:  * 2009-03-14  JRAMIREZ     SIN-0001   Version inicial.
+0020:  * 2011-05-09  JRAMIREZ     SIN-0118   Proceso batch por fecha de corte.
+0021:  * 2013-06-20  MCASTRO      SIN-0310   Beneficios para clientes VIP.
+0022:  * 2017-02-08  LORTEGA      SIN-0577   Periodo de carencia por cobertura.
+0023:  * 2019-10-15  LORTEGA      SIN-0744   Penalizacion por siniestralidad.
+0024:  * 2021-09-30  PVARGAS      SIN-0912   Alerta de fraude y observaciones.
+0025:  * 2023-04-03  PVARGAS      SIN-1050   Retencion impositiva parametrizable.
+0026:  ******************************************************************************/
+0027: 
+0028:     ----------------------------------------------------------------------------
+0029:     -- Estados del siniestro
+0030:     ----------------------------------------------------------------------------
+0031:     c_sin_registrado     CONSTANT VARCHAR2(20) := 'REGISTRADO';
+0032:     c_sin_liquidado      CONSTANT VARCHAR2(20) := 'LIQUIDADO';
+0033:     c_sin_rechazado      CONSTANT VARCHAR2(20) := 'RECHAZADO';
+0034:     c_sin_pend_revision  CONSTANT VARCHAR2(20) := 'PENDIENTE_REVISION';
+0035: 
+0036:     ----------------------------------------------------------------------------
+0037:     -- Estados de la liquidacion
+0038:     ----------------------------------------------------------------------------
+0039:     c_liq_aprobada       CONSTANT VARCHAR2(25) := 'APROBADA';
+0040:     c_liq_rechazada      CONSTANT VARCHAR2(25) := 'RECHAZADA';
+0041:     c_liq_pend_aprob     CONSTANT VARCHAR2(25) := 'PENDIENTE_APROBACION';
+0042: 
+0043:     ----------------------------------------------------------------------------
+0044:     -- PR_LIQUIDAR_SINIESTRO
+0045:     --   Liquida un unico siniestro en estado REGISTRADO.
+0046:     --   Inserta un registro en LS_LIQUIDACIONES y actualiza el estado del
+0047:     --   siniestro. NO realiza COMMIT (lo controla el llamador).
+0048:     --
+0049:     --   p_siniestro_id  : identificador del siniestro a liquidar.
+0050:     --   p_fecha_proceso : fecha de corte / fecha de liquidacion.
+0051:     --
+0052:     --   Errores:
+0053:     --     ORA-20001  El siniestro no se encuentra en estado REGISTRADO.
+0054:     --     ORA-20010  Parametro de negocio inexistente en LS_PARAMETROS.
+0055:     --     NO_DATA_FOUND  El siniestro, la poliza o el cliente no existen.
+0056:     ----------------------------------------------------------------------------
+0057:     PROCEDURE pr_liquidar_siniestro (
+0058:         p_siniestro_id   IN ls_siniestros.siniestro_id%TYPE,
+0059:         p_fecha_proceso  IN DATE
+0060:     );
+0061: 
+0062:     ----------------------------------------------------------------------------
+0063:     -- PR_PROCESAR_LOTE
+0064:     --   Proceso batch: liquida todos los siniestros en estado REGISTRADO cuya
+0065:     --   fecha de denuncia sea menor o igual a la fecha de proceso, en orden
+0066:     --   ascendente de SINIESTRO_ID. Cada siniestro se procesa de forma
+0067:     --   aislada (SAVEPOINT): un error en uno no detiene el lote.
+0068:     --   Al finalizar realiza COMMIT y emite un resumen por DBMS_OUTPUT.
+0069:     --
+0070:     --   p_fecha_proceso : fecha de corte (por defecto, la fecha del sistema).
+0071:     ----------------------------------------------------------------------------
+0072:     PROCEDURE pr_procesar_lote (
+0073:         p_fecha_proceso  IN DATE DEFAULT TRUNC(SYSDATE)
+0074:     );
+0075: 
+0076: END pkg_liquidacion_siniestros;
+0077: /
+0078: 

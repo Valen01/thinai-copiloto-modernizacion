@@ -1,0 +1,181 @@
+openapi: 3.0.3
+info:
+  title: Claims Settlement API
+  version: 1.0.0
+  description: >
+    Servicio de liquidacion de siniestros (equivalente funcional del paquete
+    PL/SQL PKG_LIQUIDACION_SINIESTROS). Multitenant: toda operacion exige la
+    cabecera X-Tenant-ID. Los identificadores se enmascaran en logs y mensajes.
+servers:
+  - url: http://127.0.0.1:8080
+paths:
+  /v1/claims/{claimId}/settlements:
+    post:
+      operationId: settleClaim
+      summary: Liquida un siniestro REGISTRADO (R-001 a R-027, R-032, R-036)
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ClaimId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProcessRequest'
+      responses:
+        '201':
+          description: Liquidacion registrada (APROBADA, RECHAZADA o PENDIENTE_APROBACION).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Settlement'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '413':
+          $ref: '#/components/responses/TooLarge'
+        '422':
+          $ref: '#/components/responses/Invalid'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /v1/claims/{claimId}/settlement:
+    get:
+      operationId: getLatestSettlement
+      summary: Ultima liquidacion de un siniestro
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ClaimId'
+      responses:
+        '200':
+          description: Ultima liquidacion del siniestro.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Settlement'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/Invalid'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /v1/settlement-batches:
+    post:
+      operationId: runSettlementBatch
+      summary: Ejecuta el lote del tenant (R-028 a R-031, R-035)
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProcessRequest'
+      responses:
+        '200':
+          description: Resumen del lote.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchSummary'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '413':
+          $ref: '#/components/responses/TooLarge'
+        '422':
+          $ref: '#/components/responses/Invalid'
+        '500':
+          $ref: '#/components/responses/ServerError'
+components:
+  parameters:
+    TenantId:
+      name: X-Tenant-ID
+      in: header
+      required: true
+      description: Identificador del tenant (letras, digitos, '-' y '_'; maximo 40).
+      schema:
+        type: string
+        pattern: '^[A-Za-z0-9_-]{1,40}$'
+    ClaimId:
+      name: claimId
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 0
+  schemas:
+    ProcessRequest:
+      type: object
+      required: [process_date]
+      properties:
+        process_date:
+          type: string
+          format: date
+          description: Fecha de proceso (YYYY-MM-DD). Solo fija la fecha de liquidacion y el corte del lote (R-032).
+    Settlement:
+      type: object
+      properties:
+        settlement_id: {type: integer}
+        claim_id: {type: integer}
+        settlement_date: {type: string, format: date}
+        claimed_amount: {type: string, description: 'Importe sin signo con 2 decimales'}
+        base_amount: {type: string}
+        deductible: {type: string}
+        covered: {type: string}
+        withholding: {type: string}
+        net: {type: string}
+        status:
+          type: string
+          enum: [APROBADA, RECHAZADA, PENDIENTE_APROBACION]
+        reason: {type: string}
+        observations:
+          type: string
+          nullable: true
+          description: Marcas separadas por ';'
+        process_user: {type: string}
+    BatchSummary:
+      type: object
+      properties:
+        processed: {type: integer}
+        settled: {type: integer}
+        rejected: {type: integer}
+        pending: {type: integer}
+        errors: {type: integer}
+        total_net_approved: {type: string}
+    Error:
+      type: object
+      required: [error, detail]
+      properties:
+        error: {type: string}
+        detail: {type: string}
+  responses:
+    NotFound:
+      description: Tenant, siniestro, poliza, cliente o liquidacion inexistente (R-002).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Conflict:
+      description: El siniestro no esta REGISTRADO (R-001, ORA-20001).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    TooLarge:
+      description: Cuerpo mayor de 64 KB.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Invalid:
+      description: Cabecera X-Tenant-ID invalida, fecha invalida o valor fuera de dominio.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ServerError:
+      description: Error de dominio no clasificado (p. ej. parametro no definido, R-003).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

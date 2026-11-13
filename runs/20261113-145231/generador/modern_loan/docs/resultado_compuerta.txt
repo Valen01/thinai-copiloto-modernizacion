@@ -1,0 +1,8 @@
+........................................................................ [ 54%]
+.............................................................            [100%]
+133 passed in 0.47s
+
+=== COMPUERTA DE CALIDAD ===
+  info: complejidad maxima 9 (tests\test_outcome_and_params.py:test_r004_value_domains_accept_valid_and_reject_others)
+  info: cobertura de lineas 85.8% (minimo 80.0%)
+RESULTADO: APROBADA

@@ -1,0 +1,9 @@
+﻿__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+._*
+.DS_Store
+.env
+runs/*
+!runs/20261113-145231/

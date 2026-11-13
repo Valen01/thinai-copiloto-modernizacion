@@ -1,0 +1,99 @@
+{
+"reglas": [
+{
+"rule_id": "R-033", "tipo": "negocio", "categoria": "error",
+"descripcion": "Cada siniestro del lote se procesa aislado con SAVEPOINT. Cualquier excepción (WHEN OTHERS) revierte solo ese siniestro al savepoint, suma 1 a errores, escribe un log ERROR con SQLERRM y el lote continúa. El siniestro queda en REGISTRADO.",
+"condicion": "excepción al liquidar un siniestro",
+"accion": "ROLLBACK TO savepoint, contador de errores, log ERROR",
+"parametros": {},
+"evidencia": [
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "SAVEPOINT sp_siniestro;"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "pr_liquidar_siniestro(r.siniestro_id, p_fecha_proceso);"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "WHEN OTHERS THEN"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "ROLLBACK TO sp_siniestro;"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "v_cant_errores := v_cant_errores + 1;"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "pr_log('ERROR', r.siniestro_id, SQLERRM);"},
+{"archivo": "03_pkg_liquidacion_siniestros_spec.sql", "fragmento": "PROCEDURE pr_liquidar_siniestro ("}
+],
+"confianza": "alta", "preguntas_abiertas": [], "estado_revision": "pendiente"
+},
+{
+"rule_id": "R-034", "tipo": "negocio", "categoria": "calculo",
+"descripcion": "Tras cada siniestro el lote relee su estado final y lo cuenta: LIQUIDADO -> liquidados (y suma el monto neto de su liquidación APROBADA al total neto aprobado), RECHAZADO -> rechazados, PENDIENTE_REVISION -> pendientes. Los pendientes NO suman al total neto. También se acumula el monto reclamado procesado, que no se imprime.",
+"condicion": "después de cada liquidación sin error",
+"accion": "actualiza contadores y total neto aprobado",
+"parametros": {},
+"evidencia": [
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "v_cant_procesados := v_cant_procesados + 1;"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "v_total_reclamado := v_total_reclamado + r.monto_reclamado;"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "IF v_estado_final = c_sin_liquidado THEN"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "v_cant_liquidados := v_cant_liquidados + 1;"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "AND estado       = c_liq_aprobada;"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "v_total_neto_aprob := v_total_neto_aprob + v_neto_sin;"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "ELSIF v_estado_final = c_sin_rechazado THEN"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "v_cant_rechazados := v_cant_rechazados + 1;"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "ELSIF v_estado_final = c_sin_pend_revision THEN"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "v_cant_pendientes := v_cant_pendientes + 1;"}
+],
+"ausencias": [
+{"descripcion": "El total reclamado no se imprime en el resumen", "archivo": "04_pkg_liquidacion_siniestros_body.sql", "patron": "PUT_LINE.*v_total_reclamado", "esperado": 0}
+],
+"confianza": "alta", "preguntas_abiertas": ["¿El resumen debería mostrar el total reclamado y el neto pendiente?"], "estado_revision": "pendiente"
+},
+{
+"rule_id": "R-035", "tipo": "negocio", "categoria": "efecto_secundario",
+"descripcion": "Al terminar el bucle el lote hace COMMIT único de todo lo procesado y registra en bitácora INFO el inicio y el fin (con los contadores).",
+"condicion": "fin del lote",
+"accion": "COMMIT; pr_log INFO de inicio y fin",
+"parametros": {},
+"evidencia": [
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "pr_log('INFO', NULL, 'Inicio lote de liquidacion. Fecha proceso: ' ||"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "COMMIT;", "ocurrencia": 2},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "pr_log('INFO', NULL, 'Fin lote. Procesados=' || v_cant_procesados ||"}
+],
+"confianza": "alta", "preguntas_abiertas": [], "estado_revision": "pendiente"
+},
+{
+"rule_id": "R-036", "tipo": "tecnico", "categoria": "efecto_secundario",
+"descripcion": "Resumen del lote por DBMS_OUTPUT: líneas de texto con fecha de proceso (YYYY-MM-DD) y contadores; el total neto aprobado se formatea FM999999990.00. Es formato de salida, sin regla de negocio.",
+"condicion": "fin del lote",
+"accion": "DBMS_OUTPUT.PUT_LINE",
+"parametros": {"formato_importe": "FM999999990.00"},
+"evidencia": [
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "DBMS_OUTPUT.PUT_LINE(' RESUMEN LOTE DE LIQUIDACION');"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "DBMS_OUTPUT.PUT_LINE(' Total neto aprobado: ' || TO_CHAR(v_total_neto_aprob, 'FM999999990.00'));"}
+],
+"confianza": "alta", "preguntas_abiertas": [], "estado_revision": "pendiente"
+},
+{
+"rule_id": "R-037", "tipo": "negocio", "categoria": "redondeo",
+"descripcion": "Convención de redondeo: cada operación de porcentaje (deducible porcentual, descuento VIP, cubierto, penalización, retención, umbral de fraude) se redondea a 2 decimales con ROUND inmediatamente; los importes locales y de tabla son NUMBER(14,2). El neto no se redondea de nuevo. Se asume que ROUND de Oracle es mitad hacia arriba (no probado por ejecución).",
+"condicion": "cada cálculo porcentual",
+"accion": "ROUND(x, 2)",
+"parametros": {"decimales": 2},
+"evidencia": [
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "*   Todos los importes calculados se redondean a 2 decimales con ROUND"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "v_cubierto           NUMBER(14,2) := 0;"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "v_deducible      NUMBER(14,2);"}
+],
+"confianza": "media", "preguntas_abiertas": ["¿Se confirma redondeo mitad hacia arriba?"], "estado_revision": "pendiente"
+},
+{
+"rule_id": "R-038", "tipo": "negocio", "categoria": "calculo",
+"descripcion": "Las marcas de observación se concatenan con ';': la primera sin separador (observaciones NULL), las siguientes con ';' delante. La variable v_observaciones (VARCHAR2(400)) empieza vacía.",
+"condicion": "cada vez que se agrega una marca",
+"accion": "concatenar marca",
+"parametros": {"separador": ";"},
+"evidencia": [
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "c_separador_obs   CONSTANT VARCHAR2(1)   := ';';"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "IF p_observaciones IS NULL THEN"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "p_observaciones := p_marca;"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "p_observaciones := p_observaciones || c_separador_obs || p_marca;"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "v_observaciones      VARCHAR2(400);"}
+],
+"confianza": "alta", "preguntas_abiertas": [], "estado_revision": "pendiente"
+}
+],
+"tecnicos": {},
+"glosario": {}
+}

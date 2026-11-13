@@ -1,0 +1,141 @@
+{
+"reglas": [
+{
+"rule_id": "R-039", "tipo": "negocio", "categoria": "tasas",
+"descripcion": "Tabla de parámetros cargada: DIAS_MAX_DENUNCIA 30, DIAS_MAX_DENUNCIA_VIDA 365, DEDUCIBLE_MINIMO 100, PCT_DESCUENTO_DED_VIP 50, TOLERANCIA_MORA_VIP 500, MAX_SINIESTROS_ANUAL 3, PCT_PENALIZACION_SINIEST 10, UMBRAL_RETENCION 10000, TASA_RETENCION 2, TOPE_AUTO_APROBACION 50000, DIAS_ALERTA_FRAUDE 15, PCT_ALERTA_FRAUDE 80, FACTOR_INFLACION 1.035, TASA_IVA 19, VERSION_MOTOR '3.2.0' (texto). TASA_IVA y FACTOR_INFLACION no afectan el resultado de la liquidación (ver R-004 y R-042/R-043).",
+"condicion": "carga de parámetros",
+"accion": "INSERT en ls_parametros",
+"parametros": {"TASA_IVA": 19, "VERSION_MOTOR": "3.2.0"},
+"evidencia": [
+{"archivo": "02_parametros.sql", "fragmento": "('TASA_IVA', 19,"},
+{"archivo": "02_parametros.sql", "fragmento": "('VERSION_MOTOR', NULL, '3.2.0'"}
+],
+"confianza": "alta", "preguntas_abiertas": ["¿Los parámetros son configurables por ambiente o fijos?"], "estado_revision": "pendiente"
+},
+{
+"rule_id": "R-040", "tipo": "negocio", "categoria": "validacion",
+"descripcion": "Dominios de valores impuestos por la base de datos: categoría de cliente (VIP, PREFERENTE, ESTANDAR), ramo (AUTO, HOGAR, SALUD, VIDA), estado de póliza (VIGENTE, CANCELADA, SUSPENDIDA), tipo de deducible (FIJO, PORCENTAJE), estado de siniestro (REGISTRADO, LIQUIDADO, RECHAZADO, PENDIENTE_REVISION) y de liquidación (APROBADA, RECHAZADA, PENDIENTE_APROBACION). Por el CHECK de tipo de deducible, la rama 'distinto de FIJO' del cálculo equivale a PORCENTAJE.",
+"condicion": "inserción/actualización en tablas",
+"accion": "CHECK constraints",
+"parametros": {},
+"evidencia": [
+{"archivo": "01_ddl_tablas.sql", "fragmento": "CONSTRAINT ck_ls_cli_categoria CHECK (categoria IN ('VIP','PREFERENTE','ESTANDAR'))"},
+{"archivo": "01_ddl_tablas.sql", "fragmento": "CONSTRAINT ck_ls_pol_ramo CHECK (ramo IN ('AUTO','HOGAR','SALUD','VIDA'))"},
+{"archivo": "01_ddl_tablas.sql", "fragmento": "CONSTRAINT ck_ls_pol_estado CHECK (estado IN ('VIGENTE','CANCELADA','SUSPENDIDA'))"},
+{"archivo": "01_ddl_tablas.sql", "fragmento": "CONSTRAINT ck_ls_pol_ded_tipo CHECK (deducible_tipo IN ('FIJO','PORCENTAJE'))"},
+{"archivo": "01_ddl_tablas.sql", "fragmento": "CONSTRAINT ck_ls_sin_estado CHECK (estado IN ('REGISTRADO','LIQUIDADO','RECHAZADO','PENDIENTE_REVISION'))"},
+{"archivo": "01_ddl_tablas.sql", "fragmento": "CONSTRAINT ck_ls_liq_estado CHECK (estado IN ('APROBADA','RECHAZADA','PENDIENTE_APROBACION'))"}
+],
+"confianza": "alta", "preguntas_abiertas": [], "estado_revision": "pendiente"
+},
+{
+"rule_id": "R-041", "tipo": "tecnico", "categoria": "fechas",
+"descripcion": "fn_es_dia_habil (lunes a viernes, sin tabla de festivos) está definida pero nunca se invoca y es privada (no está en la especificación). No influye en ningún resultado: los plazos son días calendario. La función depende del idioma NLS forzado a ENGLISH (no probado por ejecución).",
+"condicion": "nunca se ejecuta",
+"accion": "devuelve TRUE si el día no es SAT ni SUN",
+"parametros": {},
+"evidencia": [
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "v_dia := TO_CHAR(p_fecha, 'DY', 'NLS_DATE_LANGUAGE=ENGLISH');"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "RETURN v_dia NOT IN ('SAT', 'SUN');"}
+],
+"ausencias": [
+{"descripcion": "Solo la definición de fn_es_dia_habil; ninguna llamada", "archivo": "04_pkg_liquidacion_siniestros_body.sql", "patron": "fn_es_dia_habil\\s*\\(", "esperado": 1},
+{"descripcion": "Funciones privadas ausentes de la especificación", "archivo": "03_pkg_liquidacion_siniestros_spec.sql", "patron": "fn_es_dia_habil|fn_calcular_iva|pr_recalcular_reserva_tecnica|pr_enviar_notificacion|fn_calcular_deducible", "esperado": 0}
+],
+"confianza": "alta", "preguntas_abiertas": ["¿Debería usarse el día hábil en algún plazo?"], "estado_revision": "pendiente"
+},
+{
+"rule_id": "R-042", "tipo": "tecnico", "categoria": "calculo",
+"descripcion": "fn_calcular_iva (ROUND(monto * TASA_IVA / 100, 2)) existe pero nunca se invoca. No hay IVA en el resultado de la liquidación.",
+"condicion": "nunca se ejecuta",
+"accion": "calcula IVA",
+"parametros": {"tasa_iva": 19},
+"evidencia": [
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "v_tasa := fn_param_num('TASA_IVA');"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "RETURN ROUND(p_monto * v_tasa / 100, 2);"}
+],
+"ausencias": [
+{"descripcion": "Solo la definición de fn_calcular_iva", "archivo": "04_pkg_liquidacion_siniestros_body.sql", "patron": "fn_calcular_iva\\s*\\(", "esperado": 1}
+],
+"confianza": "alta", "preguntas_abiertas": ["¿Se prevé aplicar IVA a la indemnización?"], "estado_revision": "pendiente"
+},
+{
+"rule_id": "R-043", "tipo": "tecnico", "categoria": "efecto_secundario",
+"descripcion": "pr_recalcular_reserva_tecnica (borra ls_tmp_calculo_2009 y la llena con reserva = ROUND(reclamado * FACTOR_INFLACION, 2) de siniestros LIQUIDADO de años anteriores) nunca se invoca; no afecta la liquidación.",
+"condicion": "nunca se ejecuta",
+"accion": "DELETE y INSERT en tabla temporal",
+"parametros": {},
+"evidencia": [
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "v_factor := fn_param_num('FACTOR_INFLACION');"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "DELETE FROM ls_tmp_calculo_2009;"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "VALUES (r.siniestro_id, ROUND(r.monto_reclamado * v_factor, 2), SYSDATE);"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "WHERE EXTRACT(YEAR FROM s.fecha_ocurrencia) < p_anio"}
+],
+"ausencias": [
+{"descripcion": "Solo la definición del procedimiento", "archivo": "04_pkg_liquidacion_siniestros_body.sql", "patron": "pr_recalcular_reserva_tecnica\\s*\\(", "esperado": 1}
+],
+"confianza": "alta", "preguntas_abiertas": [], "estado_revision": "pendiente"
+},
+{
+"rule_id": "R-044", "tipo": "tecnico", "categoria": "calculo",
+"descripcion": "fn_calcular_deducible_v1 (versión 2009) no se invoca: solo aparece su definición y una llamada dentro de comentario. Truncaba (TRUNC a 2) en vez de redondear, sin mínimo; las líneas posteriores al RETURN son inalcanzables.",
+"condicion": "nunca se ejecuta",
+"accion": "deducible fijo/porcentaje truncado",
+"parametros": {},
+"evidencia": [
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "IF p_deducible_tipo = 'FIJO' THEN"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "ELSIF p_deducible_tipo = 'PORCENTAJE' THEN"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "RETURN TRUNC(v_deducible, 2);"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "v_deducible := v_deducible * 1.0;"}
+],
+"ausencias": [
+{"descripcion": "Definición y llamada comentada solamente", "archivo": "04_pkg_liquidacion_siniestros_body.sql", "patron": "fn_calcular_deducible_v1\\s*\\(", "esperado": 2}
+],
+"confianza": "alta", "preguntas_abiertas": [], "estado_revision": "pendiente"
+},
+{
+"rule_id": "R-045", "tipo": "tecnico", "categoria": "efecto_secundario",
+"descripcion": "Modo debug: c_modo_debug es constante FALSE, por lo que nunca se imprime la traza DEBUG ni se llama pr_enviar_notificacion (que solo imprime por DBMS_OUTPUT, sin envío real). La traza de debug incluiría el nombre del cliente (dato personal) si se activara: hallazgo de seguridad menor.",
+"condicion": "c_modo_debug = TRUE (nunca)",
+"accion": "DBMS_OUTPUT de traza y notificación",
+"parametros": {"c_modo_debug": false},
+"evidencia": [
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "c_modo_debug      CONSTANT BOOLEAN       := FALSE;"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "IF c_modo_debug THEN", "ocurrencia": 1},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "' cliente=' || v_cli.nombre);"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "IF c_modo_debug THEN", "ocurrencia": 2},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "v_mensaje := 'Su siniestro ' || p_siniestro_id || ' fue ' || LOWER(p_estado);"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "DBMS_OUTPUT.PUT_LINE('[NOTIFICACION] ' || v_mensaje);"}
+],
+"confianza": "alta", "preguntas_abiertas": [], "estado_revision": "pendiente"
+},
+{
+"rule_id": "R-046", "tipo": "tecnico", "categoria": "calculo",
+"descripcion": "Bloque comentado /* ... */ con el cálculo original de 2009 (reemplazado en SIN-0310). No se ejecuta; su línea IF dentro del comentario no es decisión real.",
+"condicion": "nunca (comentado)",
+"accion": "ninguna",
+"parametros": {},
+"evidencia": [
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "-- SIN-0001 (2009): calculo original, reemplazado en SIN-0310"},
+{"archivo": "04_pkg_liquidacion_siniestros_body.sql", "fragmento": "IF v_cubierto > v_pol.suma_asegurada THEN"}
+],
+"confianza": "alta", "preguntas_abiertas": [], "estado_revision": "pendiente"
+}
+],
+"tecnicos": {
+"04_pkg_liquidacion_siniestros_body.sql:pr_enviar_notificacion": "stub de notificación sin envío real, nunca invocado con modo debug apagado",
+"04_pkg_liquidacion_siniestros_body.sql:fn_calcular_deducible_v1": "versión obsoleta sin invocaciones (ver R-044)"
+},
+"glosario": {
+"v_monto_base": "monto reclamado topado por el límite de la cobertura",
+"v_dias_desde_inicio": "días entre inicio de póliza y ocurrencia; sirve para carencia y alerta de fraude",
+"v_suma_remanente": "suma asegurada disponible tras indemnizaciones aprobadas o pendientes",
+"v_cubierto": "monto que paga la aseguradora antes de retención",
+"v_neto": "cubierto menos retención impositiva",
+"PRIMA_PENDIENTE": "prima vencida no pagada (mora)",
+"DIAS_CARENCIA": "días desde inicio de póliza en que la cobertura aún no está activa",
+"TOLERANCIA_MORA_VIP": "deuda de prima tolerada a clientes VIP",
+"SOSPECHA_FRAUDE": "siniestro temprano de monto alto, pasa a revisión manual",
+"PENDIENTE_REVISION": "estado del siniestro cuya liquidación espera aprobación"
+}
+}
