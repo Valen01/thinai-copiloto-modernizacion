@@ -1,0 +1,8 @@
+openapi: 3.0.3
+info: {title: t, version: "1"}
+paths:
+  /quote:
+    post:
+      parameters:
+        - {name: X-Tenant-ID, in: header, required: true, schema: {type: string}}
+      responses: {"200": {description: ok}}

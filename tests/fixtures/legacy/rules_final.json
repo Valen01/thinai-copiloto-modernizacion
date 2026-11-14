@@ -1,0 +1,2682 @@
+{
+  "reglas": [
+    {
+      "rule_id": "R-001",
+      "categoria": "error",
+      "descripcion": "Solo en PL/SQL: si el préstamo no existe en la tabla de préstamos, la liquidación termina con estado LOAN_NOT_FOUND y todos los valores en cero. El COBOL no tiene esta validación porque recibe los datos del préstamo dentro del registro de entrada.",
+      "condicion": "No hay fila en loans con loan_id = préstamo solicitado.",
+      "accion": "Devuelve estado LOAN_NOT_FOUND, flags '------', importes y días en 0, sin escribir auditoría.",
+      "parametros": {
+        "codigo_error": "LOAN_NOT_FOUND"
+      },
+      "evidencia": [
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "SELECT * INTO lo FROM loans WHERE loan_id = p_loan;"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "WHEN NO_DATA_FOUND THEN",
+          "ocurrencia": 3
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "r.status := 'LOAN_NOT_FOUND';"
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [
+        "En el batch COBOL, ¿quién garantiza que el préstamo existe antes de generar LOANREQ.DAT? ¿El sistema modernizado debe conservar LOAN_NOT_FOUND como código propio?"
+      ],
+      "estado_revision": "aprobada",
+      "tipo": "negocio",
+      "dictamen": {
+        "decision": "✅ Aprobada",
+        "justificacion": "Descripción consistente con el comportamiento identificado en el código; conservar evidencia y clasificación apropiadas."
+      },
+      "aprobada_por": "Valentina Burbano (QA Lead)",
+      "fecha_aprobacion": "2026-11-13"
+    },
+    {
+      "rule_id": "R-002",
+      "categoria": "validacion",
+      "descripcion": "Solo se liquidan préstamos activos. Cualquier estado distinto de 'A' se rechaza.",
+      "condicion": "Estado del préstamo distinto de 'A'.",
+      "accion": "Estado LOAN_INACTIVE; no se calcula nada.",
+      "parametros": {
+        "estado_valido": "A",
+        "operador": "<>",
+        "codigo_error": "LOAN_INACTIVE"
+      },
+      "evidencia": [
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "IF RQ-LSTAT NOT = 'A'"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "MOVE 'LOAN_INACTIVE' TO O-ST"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "IF lo.status <> 'A' THEN"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "r.status := 'LOAN_INACTIVE';"
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [
+        "¿Qué otros estados existen (castigado, cancelado, reestructurado) y alguno debería poder liquidarse?"
+      ],
+      "estado_revision": "aprobada",
+      "tipo": "negocio",
+      "dictamen": {
+        "decision": "✅ Aprobada",
+        "justificacion": "Descripción consistente con el comportamiento identificado en el código; conservar evidencia y clasificación apropiadas."
+      },
+      "aprobada_por": "Valentina Burbano (QA Lead)",
+      "fecha_aprobacion": "2026-11-13"
+    },
+    {
+      "rule_id": "R-003",
+      "categoria": "validacion",
+      "descripcion": "Solo se liquidan préstamos en pesos colombianos (COP).",
+      "condicion": "Moneda del préstamo distinta de 'COP'.",
+      "accion": "Estado CURRENCY_INVALID; no se calcula nada.",
+      "parametros": {
+        "moneda_valida": "COP",
+        "codigo_error": "CURRENCY_INVALID"
+      },
+      "evidencia": [
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "IF RQ-CCY NOT = 'COP'"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "MOVE 'CURRENCY_INVALID' TO O-ST"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "IF lo.currency <> 'COP' THEN"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "r.status := 'CURRENCY_INVALID';"
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [],
+      "estado_revision": "aprobada",
+      "tipo": "negocio",
+      "dictamen": {
+        "decision": "✅ Aprobada",
+        "justificacion": "Descripción consistente con el comportamiento identificado en el código; conservar evidencia y clasificación apropiadas."
+      },
+      "aprobada_por": "Valentina Burbano (QA Lead)",
+      "fecha_aprobacion": "2026-11-13"
+    },
+    {
+      "rule_id": "R-004",
+      "categoria": "validacion",
+      "descripcion": "El número de cuota solicitado debe estar entre 1 y el plazo del préstamo en meses (ambos inclusive).",
+      "condicion": "Cuota < 1 o cuota > plazo.",
+      "accion": "Estado INSTALLMENT_NOT_FOUND; no se calcula nada.",
+      "parametros": {
+        "minimo": 1,
+        "maximo": "plazo_meses",
+        "operadores": [
+          "<",
+          ">"
+        ],
+        "codigo_error": "INSTALLMENT_NOT_FOUND"
+      },
+      "evidencia": [
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "IF RQ-INST < 1 OR RQ-INST > RQ-TERM"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "MOVE 'INSTALLMENT_NOT_FOUND' TO O-ST"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "IF p_inst < 1 OR p_inst > lo.term_months THEN"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "r.status := 'INSTALLMENT_NOT_FOUND';"
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [],
+      "estado_revision": "aprobada",
+      "tipo": "negocio",
+      "dictamen": {
+        "decision": "✅ Aprobada",
+        "justificacion": "Descripción consistente con el comportamiento identificado en el código; conservar evidencia y clasificación apropiadas."
+      },
+      "aprobada_por": "Valentina Burbano (QA Lead)",
+      "fecha_aprobacion": "2026-11-13"
+    },
+    {
+      "rule_id": "R-005",
+      "categoria": "orden",
+      "descripcion": "Las validaciones se evalúan en un orden fijo y la primera que falla define el estado: (PL/SQL: existencia) → activo → moneda → rango de cuota → redirección a cuota más antigua → cuota pagada → (durante la mora) tasas configuradas. Un préstamo inactivo en otra moneda devuelve LOAN_INACTIVE, nunca CURRENCY_INVALID.",
+      "condicion": "Siempre.",
+      "accion": "Sale en la primera validación fallida.",
+      "parametros": {
+        "orden": [
+          "LOAN_NOT_FOUND (solo PL/SQL)",
+          "LOAN_INACTIVE",
+          "CURRENCY_INVALID",
+          "INSTALLMENT_NOT_FOUND",
+          "redirección O",
+          "PAID",
+          "RATE_NOT_CONFIGURED"
+        ]
+      },
+      "evidencia": [
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "IF RQ-LSTAT NOT = 'A'"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "MOVE 'LOAN_INACTIVE' TO O-ST"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "GO TO 1000-EXIT",
+          "ocurrencia": 1
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "IF RQ-CCY NOT = 'COP'"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "MOVE 'CURRENCY_INVALID' TO O-ST"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "GO TO 1000-EXIT",
+          "ocurrencia": 2
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "IF RQ-INST < 1 OR RQ-INST > RQ-TERM"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "MOVE 'INSTALLMENT_NOT_FOUND' TO O-ST"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "GO TO 1000-EXIT",
+          "ocurrencia": 3
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "IF RQ-OLD < RQ-INST"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "IF RQ-ISTAT = 'P'"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "MOVE 'PAID' TO O-ST"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "GO TO 1000-EXIT",
+          "ocurrencia": 4
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "IF W-RTOK = 'N' OR W-CPOK = 'N'"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "MOVE 'RATE_NOT_CONFIGURED' TO O-ST"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "GO TO 1000-EXIT",
+          "ocurrencia": 5
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "SELECT * INTO lo FROM loans WHERE loan_id = p_loan;"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "r.status := 'LOAN_NOT_FOUND';"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "RETURN r;",
+          "ocurrencia": 1
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "IF lo.status <> 'A' THEN"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "r.status := 'LOAN_INACTIVE';"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "RETURN r;",
+          "ocurrencia": 2
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "IF lo.currency <> 'COP' THEN"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "r.status := 'CURRENCY_INVALID';"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "RETURN r;",
+          "ocurrencia": 3
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "IF p_inst < 1 OR p_inst > lo.term_months THEN"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "r.status := 'INSTALLMENT_NOT_FOUND';"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "RETURN r;",
+          "ocurrencia": 4
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "IF v_old IS NOT NULL AND v_old < p_inst THEN"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "ELSIF v_st = 'PAID' THEN"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "r.status := 'PAID';"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "RETURN r;",
+          "ocurrencia": 5
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "IF v_m IS NULL OR v_cap IS NULL THEN"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "r.status := 'RATE_NOT_CONFIGURED';"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "RETURN r;",
+          "ocurrencia": 6
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [
+        "¿El orden de precedencia de los códigos es requisito del negocio o solo consecuencia de la implementación?"
+      ],
+      "estado_revision": "corregida_pendiente_reaprobacion",
+      "tipo": "negocio",
+      "dictamen": {
+        "decision": "❌ No aprobada",
+        "justificacion": "La descripción del orden de validaciones es consistente con el flujo, pero las líneas citadas solo inicializan OK y no prueban la precedencia. Sustituir evidencia por los bloques de validación y retorno."
+      },
+      "original": {
+        "descripcion": "Las validaciones se evalúan en un orden fijo y la primera que falla define el estado: (PL/SQL: existencia) → activo → moneda → rango de cuota → redirección a cuota más antigua → cuota pagada → (durante la mora) tasas configuradas. Un préstamo inactivo en otra moneda devuelve LOAN_INACTIVE, nunca CURRENCY_INVALID.",
+        "condicion": "Siempre.",
+        "accion": "Sale en la primera validación fallida.",
+        "evidencia": [
+          {
+            "archivo": "LNCALC01.cbl",
+            "fragmento": "MOVE 'OK' TO O-ST."
+          },
+          {
+            "archivo": "PKG_LOAN_CALC.sql",
+            "fragmento": "r.status := 'OK';"
+          }
+        ],
+        "preguntas_abiertas": [
+          "¿El orden de precedencia de los códigos es requisito del negocio o solo consecuencia de la implementación?"
+        ],
+        "confianza": "alta"
+      },
+      "evidencia_ordenada": true,
+      "correccion": {
+        "resumen": "La evidencia anterior (solo la inicialización a OK) se reemplazó por cada validación, su asignación de estado y su salida temprana (GO TO 1000-EXIT / RETURN r), citadas en orden de ejecución en ambos programas. El validador comprueba que las líneas de cada archivo sean ascendentes."
+      }
+    },
+    {
+      "rule_id": "R-006",
+      "categoria": "orden",
+      "descripcion": "Si existe una cuota pendiente más antigua que la solicitada, se liquida la más antigua en su lugar y se marca la bandera 'O' (posición 1). En PL/SQL, 'pendiente' = estado OPEN o reverso pendiente, y se toma el menor número de cuota. En COBOL, el número de la cuota más antigua viene ya calculado en la entrada y no se valida si es 0: si llega 0 se intentaría liquidar la cuota 0.",
+      "condicion": "Cuota más antigua pendiente < cuota solicitada (estrictamente menor). En PL/SQL además debe existir (no nula).",
+      "accion": "Se liquida la cuota más antigua; flag O; NO se revisa si la cuota solicitada está pagada.",
+      "parametros": {
+        "operador": "<",
+        "flag": "O",
+        "posicion_flag": 1
+      },
+      "evidencia": [
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "IF RQ-OLD < RQ-INST"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "MOVE RQ-OLD TO W-INSTW"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "MOVE 'O' TO W-FLG(1:1)"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "SELECT MIN(inst_no) INTO v_old FROM loan_installments"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "WHERE loan_id = p_loan AND (status = 'OPEN' OR reversal_pending = 'Y');"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "IF v_old IS NOT NULL AND v_old < p_inst THEN"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "setf(r.flags, 1, 'O');"
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [
+        "En COBOL, ¿qué valor trae RQ-OLD cuando no hay cuotas pendientes? Si es 000, el programa liquidaría la 'cuota 0' (vencimiento un mes antes del primero). ¿Es posible en producción?",
+        "¿El cliente debe ser informado de que se liquidó una cuota distinta a la pedida, más allá del flag O?"
+      ],
+      "estado_revision": "aprobada",
+      "tipo": "negocio",
+      "dictamen": {
+        "decision": "✅ Aprobada",
+        "justificacion": "Confirmar valor RQ-OLD=000 y la redirección de cuota."
+      },
+      "aprobada_por": "Valentina Burbano (QA Lead)",
+      "fecha_aprobacion": "2026-11-13"
+    },
+    {
+      "rule_id": "R-007",
+      "categoria": "validacion",
+      "descripcion": "Si la cuota solicitada (sin redirección) ya está pagada, se rechaza con PAID, salvo que tenga un reverso pendiente: en ese caso se liquida de nuevo y se marca la bandera 'R' (posición 2). El código de 'pagada' es 'P' en COBOL y 'PAID' en PL/SQL.",
+      "condicion": "No hubo redirección a cuota más antigua y la cuota está pagada.",
+      "accion": "Con reverso pendiente = 'Y': flag R y se calcula. Sin reverso: estado PAID, sin cálculo.",
+      "parametros": {
+        "codigo_pagada_cobol": "P",
+        "codigo_pagada_plsql": "PAID",
+        "reverso": "Y",
+        "flag": "R",
+        "posicion_flag": 2,
+        "codigo_error": "PAID"
+      },
+      "evidencia": [
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "IF RQ-ISTAT = 'P'"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "IF RQ-REV = 'Y'"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "MOVE 'R' TO W-FLG(2:1)"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "MOVE 'PAID' TO O-ST"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "ELSIF v_st = 'PAID' THEN"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "IF v_rev = 'Y' THEN"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "setf(r.flags, 2, 'R');"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "r.status := 'PAID';"
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [
+        "Una cuota pagada con reverso pendiente se liquida completa otra vez (incluida mora hasta la fecha de pago). ¿Es correcto o debería liquidarse con la fecha del pago original?"
+      ],
+      "estado_revision": "aprobada",
+      "tipo": "negocio",
+      "dictamen": {
+        "decision": "✅ Aprobada",
+        "justificacion": "Confirmar tratamiento de PAID con reversión pendiente."
+      },
+      "aprobada_por": "Valentina Burbano (QA Lead)",
+      "fecha_aprobacion": "2026-11-13"
+    },
+    {
+      "rule_id": "R-008",
+      "categoria": "error",
+      "descripcion": "Solo en PL/SQL: la consulta de la cuota solicitada (SELECT status, reversal_pending, collection_fee INTO v_st, v_rev, v_fee FROM loan_installments WHERE loan_id = p_loan AND inst_no = p_inst) no está protegida por ningún manejador de excepciones. El único manejador de CALC_CUOTA (EXCEPTION / WHEN NO_DATA_FOUND) pertenece a un bloque interno que protege exclusivamente la consulta a loans; entre la consulta de la cuota y END CALC_CUOTA no hay otro EXCEPTION. Si el préstamo existe pero falta la fila de la cuota (dentro del rango 1..plazo), Oracle propaga NO_DATA_FOUND al llamador: no se devuelve un estado ni se escribe auditoría. La consulta de la cuota más antigua (SELECT MIN(inst_no)) no falla: un agregado sin filas devuelve NULL.",
+      "condicion": "No existe fila en loan_installments para (préstamo, cuota solicitada).",
+      "accion": "Excepción NO_DATA_FOUND propagada al llamador; no hay estado ni auditoría.",
+      "parametros": {},
+      "evidencia": [
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "SELECT status, reversal_pending, collection_fee"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "INTO v_st, v_rev, v_fee"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "FROM loan_installments",
+          "ocurrencia": 1
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "WHERE loan_id = p_loan AND inst_no = p_inst;"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "SELECT * INTO lo FROM loans WHERE loan_id = p_loan;"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "EXCEPTION",
+          "ocurrencia": 3
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "END CALC_CUOTA;"
+        }
+      ],
+      "confianza": "media",
+      "preguntas_abiertas": [
+        "¿Todas las cuotas del plan se crean al desembolso? Si no, ¿qué estado debe devolverse si falta físicamente una cuota dentro del rango de plazo (hoy: excepción de Oracle)?"
+      ],
+      "estado_revision": "corregida_pendiente_reaprobacion",
+      "tipo": "tecnico",
+      "dictamen": {
+        "decision": "⚠️ Corregir antes de aprobar",
+        "justificacion": "La excepción NO_DATA_FOUND es coherente con SELECT INTO, pero deben citarse la sentencia completa y el alcance del manejo de excepciones."
+      },
+      "original": {
+        "descripcion": "Solo en PL/SQL: el estado, el reverso pendiente y los gastos de cobranza se leen de la fila de la cuota solicitada sin manejar el caso de que no exista. Si el préstamo existe pero falta la fila de la cuota, la función termina con una excepción de Oracle (no con un código de estado).",
+        "condicion": "No existe fila en loan_installments para (préstamo, cuota solicitada).",
+        "accion": "Excepción NO_DATA_FOUND propagada al llamador; no hay estado ni auditoría.",
+        "evidencia": [
+          {
+            "archivo": "PKG_LOAN_CALC.sql",
+            "fragmento": "INTO v_st, v_rev, v_fee"
+          },
+          {
+            "archivo": "PKG_LOAN_CALC.sql",
+            "fragmento": "WHERE loan_id = p_loan AND inst_no = p_inst;"
+          }
+        ],
+        "preguntas_abiertas": [
+          "¿Todas las cuotas del plan se crean al desembolso? Si no, ¿debería responder INSTALLMENT_NOT_FOUND en vez de fallar?"
+        ],
+        "confianza": "media"
+      },
+      "ausencias": [
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "patron": "\\bEXCEPTION\\b",
+          "desde_fragmento": "SELECT status, reversal_pending, collection_fee",
+          "hasta_fragmento": "END CALC_CUOTA;",
+          "esperado": 0,
+          "descripcion": "No hay ningún bloque EXCEPTION entre la consulta de la cuota y el final de CALC_CUOTA"
+        }
+      ],
+      "correccion": {
+        "resumen": "Se cita la sentencia SELECT completa (4 líneas), el alcance real del único manejador de excepciones (bloque interno de loans) y una comprobación automática de que no hay otro EXCEPTION hasta el final de la función."
+      }
+    },
+    {
+      "rule_id": "R-009",
+      "categoria": "fechas",
+      "descripcion": "El vencimiento teórico de la cuota N es la fecha del primer vencimiento más (N−1) meses, donde N es la cuota efectivamente liquidada (la redirigida si aplica). DIFERENCIA: COBOL suma meses conservando el mismo día del mes; Oracle ADD_MONTHS lleva al último día del mes cuando el día no existe (31 → 28/29/30) y además, si el primer vencimiento es fin de mes, todas las cuotas caen a fin de mes (28-feb → 31-mar). En COBOL un día inexistente (p. ej. 31 de febrero) genera una fecha inválida (ver R-031).",
+      "condicion": "Siempre que se llega al cálculo.",
+      "accion": "Fecha = primer_vencimiento + (N−1) meses.",
+      "parametros": {
+        "desplazamiento_meses": "N-1"
+      },
+      "evidencia": [
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "COMPUTE W-MM = W-D8Y * 12 + W-D8M - 1 + W-INSTW - 1."
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "DIVIDE W-MM BY 12 GIVING W-NY REMAINDER W-NM."
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "COMPUTE W-D8M = W-NM + 1."
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "v_due := ADD_MONTHS(lo.first_due_date, v_w - 1);"
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [
+        "Para préstamos con primer vencimiento el 29, 30 o 31, o en fin de febrero, COBOL y PL/SQL dan fechas distintas. ¿Cuál es la regla oficial del banco?"
+      ],
+      "estado_revision": "aprobada",
+      "tipo": "negocio",
+      "dictamen": {
+        "decision": "✅ Aprobada",
+        "justificacion": "Descripción consistente con el comportamiento identificado en el código; conservar evidencia y clasificación apropiadas."
+      },
+      "aprobada_por": "Valentina Burbano (QA Lead)",
+      "fecha_aprobacion": "2026-11-13"
+    },
+    {
+      "rule_id": "R-010",
+      "categoria": "fechas",
+      "descripcion": "Si el vencimiento teórico cae en un día no hábil, se corre al siguiente día hábil (convención 'día hábil siguiente', nunca hacia atrás) y se marca la bandera 'D' (posición 4). El vencimiento ajustado es el que se usa para la mora y para decidir la tasa de refinanciación.",
+      "condicion": "Vencimiento teórico no hábil (ver R-011).",
+      "accion": "Sumar 1 día hasta encontrar un día hábil; flag D.",
+      "parametros": {
+        "convencion": "siguiente_dia_habil",
+        "flag": "D",
+        "posicion_flag": 4
+      },
+      "evidencia": [
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "PERFORM UNTIL W-BUS = 'Y'",
+          "ocurrencia": 1
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "ADD 1 TO W-DUEI"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "MOVE 'D' TO W-FLG(4:1)"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "v_due2 := adj_bus(v_due);"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "WHILE NOT is_bus(v) LOOP",
+          "ocurrencia": 1
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "IF v_due2 <> v_due THEN"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "setf(r.flags, 4, 'D');"
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [],
+      "estado_revision": "aprobada",
+      "tipo": "negocio",
+      "dictamen": {
+        "decision": "✅ Aprobada",
+        "justificacion": "Descripción consistente con el comportamiento identificado en el código; conservar evidencia y clasificación apropiadas."
+      },
+      "aprobada_por": "Valentina Burbano (QA Lead)",
+      "fecha_aprobacion": "2026-11-13"
+    },
+    {
+      "rule_id": "R-011",
+      "categoria": "fechas",
+      "descripcion": "Un día es hábil si no es sábado ni domingo y no está en la lista de festivos bancarios. COBOL calcula el día de la semana con MOD(fecha entera, 7) (6 = sábado, 0 = domingo, con día 1 = 01-01-1601 lunes); PL/SQL lo calcula con referencia al lunes 05-01-1970 (resto ≥ 5 = sábado/domingo). Ambos métodos coinciden para fechas actuales.",
+      "condicion": "Cada vez que se evalúa si una fecha es hábil.",
+      "accion": "No hábil si es fin de semana o festivo.",
+      "parametros": {
+        "cobol_fin_semana": [
+          6,
+          0
+        ],
+        "plsql_operador": ">=",
+        "plsql_valor": 5
+      },
+      "evidencia": [
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "COMPUTE W-DOW = FUNCTION MOD(W-CHK, 7)."
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "IF W-DOW = 6 OR W-DOW = 0"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "IF W-CD8 = HD-DT(W-X)"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "IF MOD(TRUNC(p_d) - DATE '1970-01-05', 7) >= 5 THEN"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "SELECT COUNT(*) INTO n FROM bank_holidays WHERE hday = TRUNC(p_d);"
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [],
+      "estado_revision": "aprobada",
+      "tipo": "negocio",
+      "dictamen": {
+        "decision": "✅ Aprobada",
+        "justificacion": "Descripción consistente con el comportamiento identificado en el código; conservar evidencia y clasificación apropiadas."
+      },
+      "aprobada_por": "Valentina Burbano (QA Lead)",
+      "fecha_aprobacion": "2026-11-13"
+    },
+    {
+      "rule_id": "R-012",
+      "categoria": "tasas",
+      "descripcion": "Calendario de festivos. En COBOL está fijo en el programa con solo 4 fechas, todas de 2026: 02-nov, 16-nov, 08-dic y 25-dic. Cualquier otro festivo (de 2026 o de otros años) se trata como día hábil. En PL/SQL se lee de la tabla bank_holidays, cuyo contenido no se ve.",
+      "condicion": "Evaluación de día hábil.",
+      "accion": "Compara la fecha contra la lista.",
+      "parametros": {
+        "festivos_cobol": [
+          "2026-11-02",
+          "2026-11-16",
+          "2026-12-08",
+          "2026-12-25"
+        ],
+        "tamano_tabla_cobol": 4
+      },
+      "evidencia": [
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "05 FILLER       PIC 9(8) VALUE 20261102."
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "05 FILLER       PIC 9(8) VALUE 20261116."
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "05 FILLER       PIC 9(8) VALUE 20261208."
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "05 FILLER       PIC 9(8) VALUE 20261225."
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "PERFORM VARYING W-X FROM 1 BY 1 UNTIL W-X > 4"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "CREATE TABLE bank_holidays(hday       DATE PRIMARY KEY);"
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [
+        "¿La tabla COBOL se reemplaza cada año o solo se cargaron los festivos restantes de 2026? Faltan festivos colombianos anteriores a noviembre de 2026 y todos los de 2027.",
+        "¿bank_holidays en Oracle tiene el mismo contenido que la tabla COBOL? Si no, ambos sistemas darán vencimientos y mora distintos."
+      ],
+      "estado_revision": "aprobada",
+      "tipo": "negocio",
+      "dictamen": {
+        "decision": "✅ Aprobada",
+        "justificacion": "Descripción consistente con el comportamiento identificado en el código; conservar evidencia y clasificación apropiadas."
+      },
+      "aprobada_por": "Valentina Burbano (QA Lead)",
+      "fecha_aprobacion": "2026-11-13"
+    },
+    {
+      "rule_id": "R-013",
+      "categoria": "fechas",
+      "descripcion": "Hora de corte: un pago hecho después de las 20:00 (estrictamente mayor que 2000 en formato HHMM) se considera recibido el siguiente día hábil y se marca la bandera 'C' (posición 3). Un pago a las 20:00 exactas cuenta para el mismo día.",
+      "condicion": "Hora del pago (HHMM) > 2000.",
+      "accion": "Fecha efectiva = siguiente día hábil posterior a la fecha del pago; flag C.",
+      "parametros": {
+        "hora_corte": 2000,
+        "operador": ">",
+        "formato": "HHMM",
+        "flag": "C",
+        "posicion_flag": 3
+      },
+      "evidencia": [
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "IF RQ-PTIME > 2000"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "MOVE 'C' TO W-FLG(3:1)"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "ADD 1 TO W-EFFI",
+          "ocurrencia": 1
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "PERFORM UNTIL W-BUS = 'Y'",
+          "ocurrencia": 2
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "c_cut CONSTANT NUMBER := 2000;"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "IF TO_NUMBER(TO_CHAR(p_pay_dt, 'HH24MI')) > c_cut THEN"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "v_eff := nxt_bus(v_eff);"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "WHILE NOT is_bus(v) LOOP",
+          "ocurrencia": 2
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "setf(r.flags, 3, 'C');"
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [
+        "¿La hora es la del servidor, la del canal o la hora de Colombia? En PL/SQL depende de la zona horaria con que se arme p_pay_dt."
+      ],
+      "estado_revision": "aprobada",
+      "tipo": "negocio",
+      "dictamen": {
+        "decision": "✅ Aprobada",
+        "justificacion": "El corte es estrictamente >2000: exactamente 20:00 no se mueve."
+      },
+      "aprobada_por": "Valentina Burbano (QA Lead)",
+      "fecha_aprobacion": "2026-11-13"
+    },
+    {
+      "rule_id": "R-014",
+      "categoria": "fechas",
+      "descripcion": "Un pago hecho hasta la hora de corte toma como fecha efectiva la fecha del pago tal cual, AUNQUE sea sábado, domingo o festivo. Solo los pagos después del corte se llevan a día hábil.",
+      "condicion": "Hora del pago ≤ 2000.",
+      "accion": "Fecha efectiva = fecha del pago, sin ajuste.",
+      "parametros": {},
+      "evidencia": [
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "COMPUTE W-EFFI = FUNCTION INTEGER-OF-DATE(RQ-PDATE)."
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "v_eff := TRUNC(p_pay_dt);"
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [
+        "¿Es intencional que un pago el sábado antes de las 20:00 cuente como sábado y uno después de las 20:00 cuente como lunes?"
+      ],
+      "estado_revision": "aprobada",
+      "tipo": "negocio",
+      "dictamen": {
+        "decision": "✅ Aprobada",
+        "justificacion": "Descripción consistente con el comportamiento identificado en el código; conservar evidencia y clasificación apropiadas."
+      },
+      "aprobada_por": "Valentina Burbano (QA Lead)",
+      "fecha_aprobacion": "2026-11-13"
+    },
+    {
+      "rule_id": "R-015",
+      "categoria": "tasas",
+      "descripcion": "Tasa de refinanciación: si el préstamo tiene fecha de refinanciación y el vencimiento AJUSTADO de la cuota es igual o posterior a esa fecha, se usa la tasa E.A. de refinanciación y se marca la bandera 'F' (posición 6). Si no, se usa la tasa E.A. original.",
+      "condicion": "Fecha de refinanciación informada (COBOL: > 0; PL/SQL: no nula) y vencimiento ajustado >= fecha de refinanciación.",
+      "accion": "Tasa E.A. = tasa de refinanciación; flag F.",
+      "parametros": {
+        "operador": ">=",
+        "fecha_comparada": "vencimiento_ajustado",
+        "flag": "F",
+        "posicion_flag": 6
+      },
+      "evidencia": [
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "IF RQ-RFDT > 0 AND W-DUE8 >= RQ-RFDT"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "MOVE RQ-RFEA TO W-EA"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "MOVE 'F' TO W-FLG(6:1)"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "IF lo.refi_date IS NOT NULL AND v_due >= lo.refi_date THEN"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "v_ea := lo.refi_ea_rate;"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "setf(r.flags, 6, 'F');"
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [
+        "En PL/SQL, si refi_date se guardó con hora, un vencimiento el mismo día quedaría ANTES de la fecha (v_due no tiene hora) y no aplicaría la nueva tasa. ¿refi_date siempre se guarda sin hora?",
+        "Si refi_date existe pero refi_ea_rate es nula, PL/SQL calcularía con tasa nula. ¿Puede pasar?"
+      ],
+      "estado_revision": "aprobada",
+      "tipo": "negocio",
+      "dictamen": {
+        "decision": "✅ Aprobada",
+        "justificacion": "Refinanciación usa >= con vencimiento ajustado."
+      },
+      "aprobada_por": "Valentina Burbano (QA Lead)",
+      "fecha_aprobacion": "2026-11-13"
+    },
+    {
+      "rule_id": "R-016",
+      "categoria": "calculo",
+      "descripcion": "Con refinanciación, la cuota NO se recalcula sobre el saldo a la fecha de refinanciación: se recalcula todo el plan como si el préstamo siempre hubiera tenido la nueva tasa, con el capital ORIGINAL y el plazo ORIGINAL. El saldo, interés y capital de la cuota salen de ese plan teórico.",
+      "condicion": "Aplica la tasa de refinanciación (R-015).",
+      "accion": "Fórmula francesa con capital y plazo originales y la tasa nueva.",
+      "parametros": {
+        "capital": "principal_original",
+        "plazo": "plazo_original"
+      },
+      "evidencia": [
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "COMPUTE W-PW = (1 + W-IM) ** RQ-TERM."
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "COMPUTE W-BAL = RQ-PRIN * W-PK"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "v_pw  := POWER(1 + v_im, lo.term_months);"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "v_bal := lo.principal * v_pk - v_cf * (v_pk - 1) / v_im;"
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [
+        "Financieramente, el plan resultante no cuadra con el saldo real al momento de refinanciar. ¿Es el comportamiento acordado con Contabilidad o un defecto histórico (REQ 12877)?"
+      ],
+      "estado_revision": "aprobada",
+      "tipo": "negocio",
+      "dictamen": {
+        "decision": "✅ Aprobada",
+        "justificacion": "Descripción consistente con el comportamiento identificado en el código; conservar evidencia y clasificación apropiadas."
+      },
+      "aprobada_por": "Valentina Burbano (QA Lead)",
+      "fecha_aprobacion": "2026-11-13"
+    },
+    {
+      "rule_id": "R-017",
+      "categoria": "tasas",
+      "descripcion": "La tasa mensual se obtiene como equivalente compuesta de la tasa efectiva anual: i_mensual = (1 + EA/100)^(1/12) − 1. La tasa E.A. tiene 2 decimales y máximo 99,99 %.",
+      "condicion": "Siempre que se calcula la cuota.",
+      "accion": "Conversión E.A. → mensual vencida.",
+      "parametros": {
+        "formula": "(1+EA/100)^(1/12)-1",
+        "decimales_EA": 2
+      },
+      "evidencia": [
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "COMPUTE W-IM = (1 + W-EA / 100) ** (1 / 12) - 1."
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "v_im  := POWER(1 + v_ea / 100, 1 / 12) - 1;"
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [],
+      "estado_revision": "aprobada",
+      "tipo": "negocio",
+      "dictamen": {
+        "decision": "✅ Aprobada",
+        "justificacion": "Descripción consistente con el comportamiento identificado en el código; conservar evidencia y clasificación apropiadas."
+      },
+      "aprobada_por": "Valentina Burbano (QA Lead)",
+      "fecha_aprobacion": "2026-11-13"
+    },
+    {
+      "rule_id": "R-018",
+      "categoria": "calculo",
+      "descripcion": "Cuota fija (sistema francés) sin redondear: C = P · i · (1+i)^n / ((1+i)^n − 1), con P = capital, i = tasa mensual, n = plazo. La cuota fija no se redondea ni se reporta; solo se reportan sus componentes.",
+      "condicion": "Siempre que se calcula la cuota.",
+      "accion": "Calcula la cuota fija teórica.",
+      "parametros": {
+        "formula": "P*i*(1+i)^n/((1+i)^n-1)"
+      },
+      "evidencia": [
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "COMPUTE W-CF = RQ-PRIN * W-IM * W-PW / (W-PW - 1)."
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "v_cf  := lo.principal * v_im * v_pw / (v_pw - 1);"
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [
+        "Con tasa E.A. = 0 hay división por cero en ambos sistemas. ¿Existen préstamos a tasa cero (empleados, promociones)?"
+      ],
+      "estado_revision": "aprobada",
+      "tipo": "negocio",
+      "dictamen": {
+        "decision": "✅ Aprobada",
+        "justificacion": "Descripción consistente con el comportamiento identificado en el código; conservar evidencia y clasificación apropiadas."
+      },
+      "aprobada_por": "Valentina Burbano (QA Lead)",
+      "fecha_aprobacion": "2026-11-13"
+    },
+    {
+      "rule_id": "R-019",
+      "categoria": "calculo",
+      "descripcion": "El saldo de capital antes de la cuota N se calcula con fórmula cerrada, no leyendo saldos reales: Saldo = P·(1+i)^(N−1) − C·((1+i)^(N−1) − 1)/i. Por eso no refleja prepagos, abonos parciales ni reestructuraciones.",
+      "condicion": "Siempre que se calcula la cuota.",
+      "accion": "Saldo teórico al inicio del periodo N.",
+      "parametros": {
+        "exponente": "N-1"
+      },
+      "evidencia": [
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "COMPUTE W-PK = (1 + W-IM) ** (W-INSTW - 1)."
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "- W-CF * (W-PK - 1) / W-IM."
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "v_pk  := POWER(1 + v_im, v_w - 1);"
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [
+        "¿Los préstamos de libre inversión permiten abonos extraordinarios? Si sí, este cálculo no los considera."
+      ],
+      "estado_revision": "aprobada",
+      "tipo": "negocio",
+      "dictamen": {
+        "decision": "✅ Aprobada",
+        "justificacion": "Descripción consistente con el comportamiento identificado en el código; conservar evidencia y clasificación apropiadas."
+      },
+      "aprobada_por": "Valentina Burbano (QA Lead)",
+      "fecha_aprobacion": "2026-11-13"
+    },
+    {
+      "rule_id": "R-020",
+      "categoria": "calculo",
+      "descripcion": "Componentes de la cuota: interés corriente = saldo × i; capital = cuota fija − saldo × i. Cada uno se redondea por separado (ver R-021), así que interés + capital puede diferir en ±0,01 de la cuota fija redondeada.",
+      "condicion": "Siempre que se calcula la cuota.",
+      "accion": "Separa la cuota en interés y capital.",
+      "parametros": {},
+      "evidencia": [
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "COMPUTE W-INT6 ROUNDED = W-BAL * W-IM."
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "COMPUTE W-PRN6 ROUNDED = W-CF - W-BAL * W-IM."
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "v_int2 := ROUND(ROUND(v_bal * v_im, 6), 2);"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "v_prn2 := ROUND(ROUND(v_cf - v_bal * v_im, 6), 2);"
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [],
+      "estado_revision": "aprobada",
+      "tipo": "negocio",
+      "dictamen": {
+        "decision": "✅ Aprobada",
+        "justificacion": "Descripción consistente con el comportamiento identificado en el código; conservar evidencia y clasificación apropiadas."
+      },
+      "aprobada_por": "Valentina Burbano (QA Lead)",
+      "fecha_aprobacion": "2026-11-13"
+    },
+    {
+      "rule_id": "R-021",
+      "categoria": "redondeo",
+      "descripcion": "Doble redondeo: interés corriente, capital e interés de mora se redondean primero a 6 decimales y después a 2, en ambos casos al más cercano con mitades hacia arriba (alejándose de cero). Esto puede dar un centavo distinto que redondear una sola vez (p. ej. 0,0049996 → 0,005000 → 0,01, en vez de 0,00). El código tiene un comentario explícito de no modificar el redondeo porque Contabilidad cuadra así.",
+      "condicion": "Siempre que se calculan interés, capital y mora.",
+      "accion": "ROUND(ROUND(x, 6), 2).",
+      "parametros": {
+        "decimales_internos": 6,
+        "decimales_finales": 2,
+        "modo": "half_up"
+      },
+      "evidencia": [
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "* 30/11/22 CAS  NO TOCAR REDONDEO, CONTABILIDAD CUADRA ASI"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "COMPUTE W-INT2 ROUNDED = W-INT6."
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "COMPUTE W-PRN2 ROUNDED = W-PRN6."
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "COMPUTE W-LT6 ROUNDED = W-LF."
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "COMPUTE W-LT2 ROUNDED = W-LT6."
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "v_lt2 := ROUND(ROUND(v_lt, 6), 2);"
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [
+        "El sistema modernizado debe reproducir el doble redondeo exacto. ¿Contabilidad puede confirmar casos de prueba de borde (valores con 5 en la 3.ª-7.ª decimal)?"
+      ],
+      "estado_revision": "aprobada",
+      "tipo": "negocio",
+      "dictamen": {
+        "decision": "✅ Aprobada",
+        "justificacion": "Descripción consistente con el comportamiento identificado en el código; conservar evidencia y clasificación apropiadas."
+      },
+      "aprobada_por": "Valentina Burbano (QA Lead)",
+      "fecha_aprobacion": "2026-11-13"
+    },
+    {
+      "rule_id": "R-022",
+      "categoria": "redondeo",
+      "descripcion": "Hecho verificado en el código: el COBOL declara sus variables financieras en coma flotante binaria (COMP-2: W-IM, W-PW, W-CF, W-PK, W-BAL, W-LF, W-IDF) y el PL/SQL usa NUMBER decimal. Riesgo potencial (no demostrado): con el redondeo a 6 y luego a 2 decimales, un caso al borde podría dar 0,01 de diferencia entre ambos. Diferencias de centavos demostradas hasta ahora: ninguna. Simulando doble precisión IEEE en Python (no el compilador COBOL real) y comparando contra Decimal de alta precisión, los 22 casos del golden master y 40.000 escenarios aleatorios (capital de 1 a 80 millones, plazo de 6 a 72 meses, EA de 3 % a 34 %, 0 a 60 días de atraso) dieron 0 diferencias de centavos. Sigue sin probarse cómo evalúa GnuCOBOL (u otro compilador) los exponentes fraccionarios (1/12 y 1/360): la equivalencia debe confirmarse ejecutando el COBOL real.",
+      "condicion": "Todos los cálculos de tasa, cuota, saldo y mora.",
+      "accion": "Aritmética flotante (COBOL) vs decimal (PL/SQL).",
+      "parametros": {
+        "cobol": "COMP-2",
+        "plsql": "NUMBER"
+      },
+      "evidencia": [
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "77 W-IM COMP-2."
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "77 W-PW COMP-2."
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "77 W-CF COMP-2."
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "77 W-PK COMP-2."
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "77 W-BAL COMP-2."
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "77 W-LF COMP-2."
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "77 W-IDF COMP-2."
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "v_im NUMBER;"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "v_pw NUMBER;"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "v_cf NUMBER;"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "v_bal NUMBER;"
+        }
+      ],
+      "confianza": "media",
+      "preguntas_abiertas": [
+        "¿Cuál de los dos sistemas es la referencia oficial ('golden') para las pruebas de regresión del sistema nuevo?",
+        "¿Qué compilador COBOL y qué opciones (ARITH) se usan en producción?"
+      ],
+      "estado_revision": "corregida_pendiente_reaprobacion",
+      "tipo": "tecnico",
+      "dictamen": {
+        "decision": "⚠️ Corregir antes de aprobar",
+        "justificacion": "Distinguir diferencias potenciales de precisión COMP-2/NUMBER de diferencias de centavos realmente demostradas."
+      },
+      "original": {
+        "descripcion": "Precisión interna distinta: COBOL hace los cálculos financieros en punto flotante binario (COMP-2, ~15-16 dígitos); PL/SQL usa NUMBER decimal (~38 dígitos). Con el redondeo a 6 decimales, casos al borde pueden diferir en 0,01 entre ambos sistemas. Además, en COBOL el resultado de (1/12) y (1/360) en exponentes depende de las reglas de precisión intermedia del compilador.",
+        "condicion": "Todos los cálculos de tasa, cuota, saldo y mora.",
+        "accion": "Aritmética flotante (COBOL) vs decimal (PL/SQL).",
+        "evidencia": [
+          {
+            "archivo": "LNCALC01.cbl",
+            "fragmento": "77  W-IM            COMP-2."
+          },
+          {
+            "archivo": "LNCALC01.cbl",
+            "fragmento": "77  W-LF            COMP-2."
+          },
+          {
+            "archivo": "PKG_LOAN_CALC.sql",
+            "fragmento": "v_im   NUMBER;"
+          }
+        ],
+        "preguntas_abiertas": [
+          "¿Cuál de los dos sistemas es la referencia oficial ('golden') para las pruebas de regresión del sistema nuevo?",
+          "¿Qué compilador COBOL y qué opciones (ARITH) se usan en producción?"
+        ],
+        "confianza": "media"
+      },
+      "comprobaciones": [
+        "Riesgo potencial, no demostrado. Barrido reproducible (extractor/barrido_precision.py): 40.000 escenarios, 0 diferencias de centavos (simulación en Python, no COBOL real).",
+        "22 de 22 casos del golden master reproducidos por una transliteración del COBOL con doble precisión: 0 diferencias."
+      ],
+      "correccion": {
+        "resumen": "Se separó el hecho verificado (COMP-2 contra NUMBER) del riesgo potencial (centavos) y de lo demostrado (0 diferencias en 40.000 escenarios simulados + 22 casos), dejando explícito que falta ejecutar el COBOL real."
+      }
+    },
+    {
+      "rule_id": "R-023",
+      "categoria": "calculo",
+      "descripcion": "El seguro se cobra como un valor fijo en pesos enteros solo si el indicador de seguro es 'Y'; cualquier otro valor deja el seguro en 0. En PL/SQL el indicador por defecto es 'Y' (se cobra si el llamador no dice nada); en COBOL viene en el registro de entrada sin valor por defecto.",
+      "condicion": "Indicador de seguro = 'Y'.",
+      "accion": "Seguro = valor fijo del préstamo; si no, 0.",
+      "parametros": {
+        "valor_activo": "Y",
+        "default_plsql": "Y"
+      },
+      "evidencia": [
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "IF RQ-INSF = 'Y'"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "MOVE RQ-INS TO W-INS2"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "MOVE ZERO TO W-INS2"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "p_ins     VARCHAR2 DEFAULT 'Y') RETURN T_RES;"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "IF p_ins = 'Y' THEN"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "v_ins2 := lo.insurance_amt;"
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [
+        "¿Quién decide el indicador de seguro y por qué no está en la tabla del préstamo?",
+        "¿El seguro es igual en todas las cuotas o debería variar con el saldo?"
+      ],
+      "estado_revision": "aprobada",
+      "tipo": "negocio",
+      "dictamen": {
+        "decision": "✅ Aprobada",
+        "justificacion": "Descripción consistente con el comportamiento identificado en el código; conservar evidencia y clasificación apropiadas."
+      },
+      "aprobada_por": "Valentina Burbano (QA Lead)",
+      "fecha_aprobacion": "2026-11-13"
+    },
+    {
+      "rule_id": "R-024",
+      "categoria": "calculo",
+      "descripcion": "Gastos de cobranza: se suman tal cual a la liquidación. En PL/SQL se toman de la cuota SOLICITADA, incluso cuando se redirigió a una cuota más antigua (R-006); es decir, la cuota liquidada puede llevar los gastos de otra cuota. En COBOL vienen en el registro de entrada y no se sabe a qué cuota corresponden.",
+      "condicion": "Siempre que se calcula.",
+      "accion": "Gastos = collection_fee de la cuota pedida (PL/SQL) / RQ-FEE (COBOL).",
+      "parametros": {},
+      "evidencia": [
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "MOVE RQ-FEE TO W-FEE2."
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "SELECT status, reversal_pending, collection_fee"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "v_fee2 := v_fee;"
+        }
+      ],
+      "confianza": "media",
+      "preguntas_abiertas": [
+        "Con redirección a cuota más antigua, ¿los gastos de cobranza deben ser los de la cuota liquidada? El PL/SQL usa los de la cuota pedida.",
+        "¿Cómo arma el proceso que genera LOANREQ.DAT el campo RQ-FEE?"
+      ],
+      "estado_revision": "aprobada",
+      "tipo": "negocio",
+      "dictamen": {
+        "decision": "✅ Aprobada",
+        "justificacion": "Riesgo funcional: los gastos se leen de la cuota solicitada, aun cuando se liquide una anterior."
+      },
+      "aprobada_por": "Valentina Burbano (QA Lead)",
+      "fecha_aprobacion": "2026-11-13"
+    },
+    {
+      "rule_id": "R-025",
+      "categoria": "fechas",
+      "descripcion": "Gracia de mora de 1 día: pagar el día del vencimiento (ajustado) o el día siguiente no genera mora. Si la diferencia entre fecha efectiva de pago y vencimiento es mayor que 1, los días de mora = diferencia − 1 y se cuentan desde el vencimiento + 2 hasta la fecha efectiva inclusive. Son días calendario (incluyen fines de semana y festivos). Un pago anticipado no genera mora ni descuento.",
+      "condicion": "fecha_efectiva − vencimiento_ajustado > 1.",
+      "accion": "dias_mora = diferencia − 1.",
+      "parametros": {
+        "gracia_dias": 1,
+        "operador": ">",
+        "primer_dia_mora": "vencimiento+2",
+        "tipo_dia": "calendario"
+      },
+      "evidencia": [
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "COMPUTE W-DIFF = W-EFFI - W-DUEI."
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "IF W-DIFF > 1"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "COMPUTE W-DAYS = W-DIFF - 1"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "COMPUTE W-FIRST = W-DUEI + 2"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "v_diff := v_eff - v_due;"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "IF v_diff > 1 THEN"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "v_days := v_diff - 1;"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "v_d := v_due + 1 + k;"
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [
+        "¿El día de gracia es política comercial o normativa? ¿Debería ser configurable?"
+      ],
+      "estado_revision": "aprobada",
+      "tipo": "negocio",
+      "dictamen": {
+        "decision": "✅ Aprobada",
+        "justificacion": "La mora comienza al segundo día después del vencimiento."
+      },
+      "aprobada_por": "Valentina Burbano (QA Lead)",
+      "fecha_aprobacion": "2026-11-13"
+    },
+    {
+      "rule_id": "R-026",
+      "categoria": "calculo",
+      "descripcion": "Interés de mora: se calcula solo sobre el CAPITAL de la cuota (ya redondeado a 2 decimales), no sobre interés, seguro ni gastos. Por cada día de mora se aplica la tasa diaria equivalente (1 + tasa_mora/100)^(1/360) − 1, usando la tasa vigente ESE día; los montos diarios se acumulan sin redondear y se redondean al final (R-021). Se usa base 360 para convertir la tasa aunque se cuenten días calendario reales.",
+      "condicion": "Hay días de mora (R-025).",
+      "accion": "mora = Σ capital_cuota × ((1+tasa_dia/100)^(1/360) − 1).",
+      "parametros": {
+        "base": "capital_cuota",
+        "base_dias": 360,
+        "capitalizacion": "tasa diaria equivalente compuesta, suma simple"
+      },
+      "evidencia": [
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "PERFORM VARYING W-CHK FROM W-FIRST BY 1"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "UNTIL W-CHK > W-EFFI"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "COMPUTE W-IDF = (1 + W-MEA / 100) ** (1 / 360) - 1"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "COMPUTE W-LF = W-LF + W-PRN2 * W-IDF"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "FOR k IN 1 .. v_days LOOP"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "v_lt := v_lt + v_prn2 * (POWER(1 + v_rt / 100, 1 / 360) - 1);"
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [
+        "¿La mora sobre solo capital y con base 360 es la definición legal que el banco quiere aplicar?"
+      ],
+      "estado_revision": "aprobada",
+      "tipo": "negocio",
+      "dictamen": {
+        "decision": "✅ Aprobada",
+        "justificacion": "Descripción consistente con el comportamiento identificado en el código; conservar evidencia y clasificación apropiadas."
+      },
+      "aprobada_por": "Valentina Burbano (QA Lead)",
+      "fecha_aprobacion": "2026-11-13"
+    },
+    {
+      "rule_id": "R-027",
+      "categoria": "tasas",
+      "descripcion": "Tope legal (tasa de usura): para cada día, la tasa de mora usada es la menor entre la tasa de mora vigente y el tope legal vigente ese día.",
+      "condicion": "Tasa de mora del día > tope del día.",
+      "accion": "Tasa del día = tope.",
+      "parametros": {
+        "operador": ">",
+        "funcion": "min(mora, tope)"
+      },
+      "evidencia": [
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "IF W-MEA > W-CAP"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "MOVE W-CAP TO W-MEA"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "v_rt := LEAST(v_m, v_cap);"
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [
+        "El tope solo se aplica a la mora; el interés corriente no se compara contra la usura. ¿Hay otro control para eso?"
+      ],
+      "estado_revision": "aprobada",
+      "tipo": "negocio",
+      "dictamen": {
+        "decision": "✅ Aprobada",
+        "justificacion": "Tasa diaria efectiva = mínimo de mora y tope legal."
+      },
+      "aprobada_por": "Valentina Burbano (QA Lead)",
+      "fecha_aprobacion": "2026-11-13"
+    },
+    {
+      "rule_id": "R-028",
+      "categoria": "tasas",
+      "descripcion": "Vigencia de tasas: para cada día se usa la tasa cuya fecha 'desde' es la más reciente que sea menor o igual a ese día. COBOL recorre la tabla en orden y se queda con la última que cumple (supone tabla ordenada ascendente); PL/SQL busca el MAX(valid_from) <= día.",
+      "condicion": "Cada día de mora.",
+      "accion": "Selecciona tasa de mora y tope vigentes.",
+      "parametros": {
+        "operador": ">="
+      },
+      "evidencia": [
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "IF W-CD8 >= MT-FROM(W-X)"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "IF W-CD8 >= CT-FROM(W-X)"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "PERFORM VARYING W-X FROM 1 BY 1 UNTIL W-X > 2"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "SELECT ea_rate INTO v FROM mora_rates"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "SELECT max_ea_rate INTO v FROM legal_caps"
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [],
+      "estado_revision": "aprobada",
+      "tipo": "negocio",
+      "dictamen": {
+        "decision": "✅ Aprobada",
+        "justificacion": "Descripción consistente con el comportamiento identificado en el código; conservar evidencia y clasificación apropiadas."
+      },
+      "aprobada_por": "Valentina Burbano (QA Lead)",
+      "fecha_aprobacion": "2026-11-13"
+    },
+    {
+      "rule_id": "R-029",
+      "categoria": "tasas",
+      "descripcion": "Tablas de tasas fijas en COBOL (2 entradas cada una). Mora E.A.: 24,00 % desde 01-01-2026; 26,00 % desde 14-11-2026. Tope legal E.A.: 28,00 % desde 01-01-2026; 25,00 % desde 01-12-2026. Efecto: desde el 01-12-2026 la mora de 26 % queda topada a 25 %. En PL/SQL las tasas vienen de las tablas mora_rates y legal_caps.",
+      "condicion": "Cálculo de mora.",
+      "accion": "Valores parametrizados en el programa.",
+      "parametros": {
+        "mora": [
+          {
+            "desde": "2026-01-01",
+            "ea": 24.0
+          },
+          {
+            "desde": "2026-11-14",
+            "ea": 26.0
+          }
+        ],
+        "tope": [
+          {
+            "desde": "2026-01-01",
+            "ea": 28.0
+          },
+          {
+            "desde": "2026-12-01",
+            "ea": 25.0
+          }
+        ]
+      },
+      "evidencia": [
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "05 FILLER       PIC X(12) VALUE '202601012400'."
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "05 FILLER       PIC X(12) VALUE '202611142600'."
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "05 FILLER       PIC X(12) VALUE '202601012800'."
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "05 FILLER       PIC X(12) VALUE '202612012500'."
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "CREATE TABLE mora_rates   (valid_from DATE PRIMARY KEY, ea_rate     NUMBER(5,2));"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "CREATE TABLE legal_caps   (valid_from DATE PRIMARY KEY, max_ea_rate NUMBER(5,2));"
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [
+        "¿Quién actualiza la tabla COBOL cuando la Superfinanciera publica una nueva tasa de usura (mensual)? ¿Las tablas Oracle tienen los mismos valores?"
+      ],
+      "estado_revision": "aprobada",
+      "tipo": "negocio",
+      "dictamen": {
+        "decision": "✅ Aprobada",
+        "justificacion": "Las tasas y topes son datos de prueba, no cifras oficiales."
+      },
+      "aprobada_por": "Valentina Burbano (QA Lead)",
+      "fecha_aprobacion": "2026-11-13"
+    },
+    {
+      "rule_id": "R-030",
+      "categoria": "error",
+      "descripcion": "Si para algún día de mora no hay tasa de mora o tope vigente (p. ej. días anteriores al 01-01-2026 en COBOL), la liquidación completa se aborta con RATE_NOT_CONFIGURED: banderas reiniciadas a '------', importes y fechas en cero, se reporta la cuota pedida (no la redirigida) y en PL/SQL no se escribe auditoría.",
+      "condicion": "Tasa de mora o tope inexistente para un día de mora.",
+      "accion": "Estado RATE_NOT_CONFIGURED; salida inmediata.",
+      "parametros": {
+        "codigo_error": "RATE_NOT_CONFIGURED"
+      },
+      "evidencia": [
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "IF W-RTOK = 'N' OR W-CPOK = 'N'"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "MOVE 'RATE_NOT_CONFIGURED' TO O-ST"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "MOVE '------' TO O-FLG"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "WHEN NO_DATA_FOUND THEN RETURN NULL;",
+          "ocurrencia": 1
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "WHEN NO_DATA_FOUND THEN RETURN NULL;",
+          "ocurrencia": 2
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "IF v_m IS NULL OR v_cap IS NULL THEN"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "r.status := 'RATE_NOT_CONFIGURED';"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "r.flags := '------';",
+          "ocurrencia": 2
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [
+        "Una cuota vencida antes de 2026 nunca se puede liquidar en COBOL con mora. ¿Hay cartera vencida de esa época?"
+      ],
+      "estado_revision": "aprobada",
+      "tipo": "negocio",
+      "dictamen": {
+        "decision": "✅ Aprobada",
+        "justificacion": "Descripción consistente con el comportamiento identificado en el código; conservar evidencia y clasificación apropiadas."
+      },
+      "aprobada_por": "Valentina Burbano (QA Lead)",
+      "fecha_aprobacion": "2026-11-13"
+    },
+    {
+      "rule_id": "R-031",
+      "categoria": "error",
+      "descripcion": "Solo COBOL: el día del primer vencimiento se copia sin ajustar al mes destino (solo se recalculan año y mes). Si ese día no existe en el mes destino (por ejemplo 31 de abril o 30 de febrero), el programa entrega a FUNCTION INTEGER-OF-DATE una fecha no válida. El código no valida la fecha (no usa FUNCTION TEST-DATE-YYYYMMDD) ni declara ON EXCEPTION / ON SIZE ERROR. El resultado en ese caso depende del compilador y no se ha probado por ejecución.",
+      "condicion": "Día del primer vencimiento mayor que los días del mes destino.",
+      "accion": "Comportamiento no definido por el código; no verificado por ejecución.",
+      "parametros": {},
+      "evidencia": [
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "MOVE RQ-FDUE TO W-D8."
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "COMPUTE W-D8M = W-NM + 1."
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "COMPUTE W-DUEI = FUNCTION INTEGER-OF-DATE(W-D8)."
+        }
+      ],
+      "confianza": "baja",
+      "preguntas_abiertas": [
+        "¿El banco permite primeros vencimientos los días 29, 30 o 31? Si sí, ¿cómo se manejan hoy en el batch?"
+      ],
+      "estado_revision": "corregida_pendiente_reaprobacion",
+      "tipo": "tecnico",
+      "dictamen": {
+        "decision": "⚠️ Corregir antes de aprobar",
+        "justificacion": "La fecha inválida no se valida; no asegurar un resultado de ejecución concreto sin compilar/probar COBOL."
+      },
+      "original": {
+        "descripcion": "Solo COBOL: si el vencimiento calculado tiene un día que no existe en el mes (p. ej. 31-04 o 30-02, ver R-009), la función de fecha no recibe una fecha válida. No hay validación ni código de error para este caso; el resultado depende del compilador (típicamente fecha entera 0 y luego una fecha absurda que lleva a RATE_NOT_CONFIGURED o a una liquidación errónea).",
+        "condicion": "Día del primer vencimiento > días del mes destino.",
+        "accion": "Comportamiento no controlado.",
+        "evidencia": [
+          {
+            "archivo": "LNCALC01.cbl",
+            "fragmento": "COMPUTE W-DUEI = FUNCTION INTEGER-OF-DATE(W-D8)."
+          }
+        ],
+        "preguntas_abiertas": [
+          "¿El banco permite primeros vencimientos los días 29, 30 o 31? Si sí, ¿cómo se manejan hoy en el batch?"
+        ],
+        "confianza": "baja"
+      },
+      "ausencias": [
+        {
+          "archivo": "LNCALC01.cbl",
+          "patron": "TEST-DATE",
+          "esperado": 0,
+          "descripcion": "El COBOL no valida fechas con TEST-DATE-YYYYMMDD"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "patron": "ON\\s+(SIZE\\s+ERROR|EXCEPTION)",
+          "esperado": 0,
+          "descripcion": "El COBOL no declara ON SIZE ERROR ni ON EXCEPTION"
+        }
+      ],
+      "correccion": {
+        "resumen": "Se retiró la afirmación sobre el resultado concreto (fecha 0, RATE_NOT_CONFIGURED o liquidación errónea), que dependía del compilador. Ahora solo se afirma lo demostrable: no hay validación ni manejo de error."
+      }
+    },
+    {
+      "rule_id": "R-032",
+      "categoria": "calculo",
+      "descripcion": "Total a pagar = gastos de cobranza + interés de mora + interés corriente + seguro + capital (todos ya a 2 decimales).",
+      "condicion": "Liquidación exitosa.",
+      "accion": "Suma de los cinco componentes.",
+      "parametros": {},
+      "evidencia": [
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "COMPUTE W-TOT = W-FEE2 + W-LT2 + W-INT2 + W-INS2 + W-PRN2."
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "r.total := v_fee2 + v_lt2 + v_int2 + v_ins2 + v_prn2;"
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [],
+      "estado_revision": "aprobada",
+      "tipo": "negocio",
+      "dictamen": {
+        "decision": "✅ Aprobada",
+        "justificacion": "Descripción consistente con el comportamiento identificado en el código; conservar evidencia y clasificación apropiadas."
+      },
+      "aprobada_por": "Valentina Burbano (QA Lead)",
+      "fecha_aprobacion": "2026-11-13"
+    },
+    {
+      "rule_id": "R-033",
+      "categoria": "orden",
+      "descripcion": "Prelación del pago: el monto pagado se aplica en este orden estricto: 1) gastos de cobranza, 2) interés de mora, 3) interés corriente, 4) seguro, 5) capital. Cada concepto se cubre completo antes de pasar al siguiente; si el dinero no alcanza, el concepto queda parcialmente cubierto y los siguientes no reciben nada.",
+      "condicion": "Siempre que se liquida (con monto 0 nada se aplica).",
+      "accion": "Distribuye el pago en cascada.",
+      "parametros": {
+        "orden": [
+          "gastos",
+          "mora",
+          "interes_corriente",
+          "seguro",
+          "capital"
+        ],
+        "operador": ">="
+      },
+      "evidencia": [
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "MOVE W-FEE2 TO W-CN(1)."
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "MOVE W-LT2  TO W-CN(2)."
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "MOVE W-INT2 TO W-CN(3)."
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "MOVE W-INS2 TO W-CN(4)."
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "MOVE W-PRN2 TO W-CN(5)."
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "PERFORM VARYING W-X FROM 1 BY 1 UNTIL W-X > 5"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "IF W-AMT >= W-CN(W-X)"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "cn(1) := v_fee2;"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "cn(5) := v_prn2;"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "FOR i IN 1 .. 5 LOOP"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "IF v_amt >= cn(i) THEN"
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [
+        "¿Esta prelación (gastos antes que intereses y capital) está validada con la normativa de protección al consumidor vigente?"
+      ],
+      "estado_revision": "aprobada",
+      "tipo": "negocio",
+      "dictamen": {
+        "decision": "✅ Aprobada",
+        "justificacion": "Orden: cobranza → mora → interés corriente → seguro → capital."
+      },
+      "aprobada_por": "Valentina Burbano (QA Lead)",
+      "fecha_aprobacion": "2026-11-13"
+    },
+    {
+      "rule_id": "R-034",
+      "categoria": "calculo",
+      "descripcion": "Resultado del abono: aplicado = total − pendiente; pendiente = suma de lo que quedó sin cubrir de los cinco conceptos; capital pendiente = lo que quedó sin cubrir del capital. Si el pago supera el total, aplicado = total.",
+      "condicion": "Liquidación exitosa.",
+      "accion": "Calcula aplicado, pendiente y capital pendiente.",
+      "parametros": {},
+      "evidencia": [
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "COMPUTE W-REM = W-CN(1) + W-CN(2) + W-CN(3)"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "COMPUTE W-APL = W-TOT - W-REM."
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "MOVE W-CN(5) TO O-PREM."
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "v_rem := v_rem + cn(i);"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "r.applied   := r.total - v_rem;"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "r.prin_rem  := cn(5);"
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [],
+      "estado_revision": "aprobada",
+      "tipo": "negocio",
+      "dictamen": {
+        "decision": "✅ Aprobada",
+        "justificacion": "Descripción consistente con el comportamiento identificado en el código; conservar evidencia y clasificación apropiadas."
+      },
+      "aprobada_por": "Valentina Burbano (QA Lead)",
+      "fecha_aprobacion": "2026-11-13"
+    },
+    {
+      "rule_id": "R-035",
+      "categoria": "calculo",
+      "descripcion": "Excedente: si después de cubrir los cinco conceptos sobra dinero, solo se marca la bandera 'X' (posición 5). El valor del excedente NO se reporta ni se aplica a otra cuota o a capital adicional.",
+      "condicion": "Monto pagado > total liquidado.",
+      "accion": "Flag X; el excedente se pierde en la salida.",
+      "parametros": {
+        "operador": ">",
+        "valor": 0,
+        "flag": "X",
+        "posicion_flag": 5
+      },
+      "evidencia": [
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "IF W-AMT > 0"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "MOVE 'X' TO W-FLG(5:1)"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "IF v_amt > 0 THEN"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "setf(r.flags, 5, 'X');"
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [
+        "¿Qué proceso decide qué hacer con el excedente (devolución, abono a capital, siguiente cuota) si el cálculo no informa el valor?"
+      ],
+      "estado_revision": "aprobada",
+      "tipo": "negocio",
+      "dictamen": {
+        "decision": "✅ Aprobada",
+        "justificacion": "Descripción consistente con el comportamiento identificado en el código; conservar evidencia y clasificación apropiadas."
+      },
+      "aprobada_por": "Valentina Burbano (QA Lead)",
+      "fecha_aprobacion": "2026-11-13"
+    },
+    {
+      "rule_id": "R-036",
+      "categoria": "validacion",
+      "descripcion": "Solo PL/SQL: el monto pagado nulo se trata como 0 (NVL) y el parámetro vale 0 por defecto, por lo que se puede usar solo para cotizar. No se valida el signo: con un monto negativo, la primera comparación de la cascada (v_amt >= cn(i)) es falsa y la rama ELSE ejecuta cn(i) := cn(i) - v_amt, que SUMA el valor absoluto al primer concepto de la cascada (gastos de cobranza), aunque su saldo original sea cero; el resto de conceptos no cambia. Tampoco se valida la cantidad de decimales del monto (NUMBER sin escala). En COBOL el campo RQ-PAMT es PIC 9(10)V99, sin signo y con 2 decimales implícitos, por lo que no puede ser negativo ni traer más decimales.",
+      "condicion": "Monto pagado nulo u omitido / negativo.",
+      "accion": "Nulo → 0; negativo → sin validación.",
+      "parametros": {
+        "default": 0
+      },
+      "evidencia": [
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "p_pay_amt NUMBER   DEFAULT 0,",
+          "ocurrencia": 1
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "v_amt := NVL(p_pay_amt, 0);"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "cn(1) := v_fee2;"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "IF v_amt >= cn(i) THEN"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "cn(i) := cn(i) - v_amt;"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "v_amt := 0;"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "05 RQ-PAMT PIC 9(10)V99."
+        }
+      ],
+      "confianza": "media",
+      "preguntas_abiertas": [
+        "¿Los canales que llaman a CALC_CUOTA pueden enviar montos negativos (reversos)? ¿Debe rechazarse?",
+        "¿Cómo tratar montos con más de dos decimales y gastos de cobranza negativos? Ninguno de los dos se valida."
+      ],
+      "estado_revision": "corregida_pendiente_reaprobacion",
+      "tipo": "tecnico",
+      "dictamen": {
+        "decision": "⚠️ Corregir antes de aprobar",
+        "justificacion": "Un abono negativo puede incrementar el primer concepto de la cascada incluso si su saldo original es cero; corregir descripción."
+      },
+      "original": {
+        "descripcion": "Solo PL/SQL: el monto pagado nulo se trata como 0 y el parámetro tiene 0 por defecto (se puede usar solo para cotizar). No se valida que sea positivo: un monto negativo AUMENTARÍA lo pendiente del primer concepto con saldo. En COBOL el campo es sin signo, así que no puede ser negativo.",
+        "condicion": "Monto pagado nulo u omitido / negativo.",
+        "accion": "Nulo → 0; negativo → sin validación.",
+        "evidencia": [
+          {
+            "archivo": "PKG_LOAN_CALC.sql",
+            "fragmento": "p_pay_amt NUMBER   DEFAULT 0,",
+            "ocurrencia": 1
+          },
+          {
+            "archivo": "PKG_LOAN_CALC.sql",
+            "fragmento": "v_amt := NVL(p_pay_amt, 0);"
+          },
+          {
+            "archivo": "PKG_LOAN_CALC.sql",
+            "fragmento": "cn(i) := cn(i) - v_amt;"
+          },
+          {
+            "archivo": "LNCALC01.cbl",
+            "fragmento": "05 RQ-PAMT      PIC 9(10)V99."
+          }
+        ],
+        "preguntas_abiertas": [
+          "¿Los canales que llaman a CALC_CUOTA pueden enviar montos negativos (reversos)? ¿Debe rechazarse?"
+        ],
+        "confianza": "media"
+      },
+      "correccion": {
+        "resumen": "Corregida la descripción: un monto negativo incrementa el primer concepto de la cascada (gastos de cobranza) aunque su saldo sea cero, no «el primer concepto con saldo». Se agregó la rama ELSE como evidencia y las preguntas del dictamen."
+      }
+    },
+    {
+      "rule_id": "R-037",
+      "categoria": "efecto_secundario",
+      "descripcion": "Solo PL/SQL: cada liquidación exitosa (estado OK) inserta un registro en calc_audit (id de cálculo, préstamo, cuota liquidada, fecha efectiva, total) en una transacción autónoma con COMMIT propio: queda grabado aunque el llamador haga rollback. Las liquidaciones con error no se auditan. COBOL no audita.",
+      "condicion": "Liquidación exitosa.",
+      "accion": "INSERT + COMMIT autónomo en calc_audit.",
+      "parametros": {},
+      "evidencia": [
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "PRAGMA AUTONOMOUS_TRANSACTION;"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "INSERT INTO calc_audit(calc_id, loan_id, inst_no, pay_date, total_due)"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "COMMIT;"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "log_calc(r.calc_id, p_loan, v_w, v_eff, r.total);"
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [
+        "¿La auditoría de simulaciones (monto 0) es deseada? Hoy cada consulta deja registro."
+      ],
+      "estado_revision": "aprobada",
+      "tipo": "negocio",
+      "dictamen": {
+        "decision": "✅ Aprobada",
+        "justificacion": "Descripción consistente con el comportamiento identificado en el código; conservar evidencia y clasificación apropiadas."
+      },
+      "aprobada_por": "Valentina Burbano (QA Lead)",
+      "fecha_aprobacion": "2026-11-13"
+    },
+    {
+      "rule_id": "R-038",
+      "categoria": "efecto_secundario",
+      "descripcion": "Solo PL/SQL: el id de cálculo tiene formato CALC-AAAAMMDD-NNNNN, con la fecha del sistema (no la del pago) y el siguiente valor de la secuencia rellenado con LPAD a 5 dígitos. LPAD con una longitud menor que la del valor lo TRUNCA por la derecha (según la documentación de Oracle; no se probó por ejecución): 100000 quedaría como '10000'. calc_id es llave primaria de calc_audit, así que dos valores truncados iguales con la misma fecha de sistema producirían una violación de llave primaria al auditar. Es un riesgo que depende del valor de la secuencia y de la fecha; no es inevitable: ocurriría solo si la secuencia supera 99999 y los valores truncados se repiten dentro del mismo día.",
+      "condicion": "Liquidación exitosa y secuencia seq_calc por encima de 99999.",
+      "accion": "Genera calc_id; con secuencia > 99999 el id se trunca y puede repetirse.",
+      "parametros": {
+        "formato": "CALC-YYYYMMDD-NNNNN",
+        "longitud_consecutivo": 5
+      },
+      "evidencia": [
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "SELECT 'CALC-' || TO_CHAR(SYSDATE, 'YYYYMMDD') || '-' ||"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "LPAD(seq_calc.NEXTVAL, 5, '0')"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "CREATE SEQUENCE seq_calc;"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "calc_id VARCHAR2(30) PRIMARY KEY,"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "INSERT INTO calc_audit(calc_id, loan_id, inst_no, pay_date, total_due)"
+        }
+      ],
+      "confianza": "media",
+      "preguntas_abiertas": [
+        "¿En qué valor está hoy seq_calc en producción? Si se acerca a 100000, es un incidente latente."
+      ],
+      "estado_revision": "corregida_pendiente_reaprobacion",
+      "tipo": "tecnico",
+      "dictamen": {
+        "decision": "⚠️ Corregir antes de aprobar",
+        "justificacion": "El truncamiento del identificador es un riesgo; la colisión depende de fecha y valores previos y no es inevitable."
+      },
+      "original": {
+        "descripcion": "Solo PL/SQL: el id de cálculo tiene formato CALC-AAAAMMDD-NNNNN con la fecha del sistema (no la del pago) y el consecutivo de una secuencia rellenado a 5 dígitos. LPAD a 5 TRUNCA si el consecutivo pasa de 99999 (100000 → '10000'), lo que produciría ids repetidos y violación de llave primaria en calc_audit, haciendo fallar la liquidación.",
+        "condicion": "Liquidación exitosa.",
+        "accion": "Genera calc_id.",
+        "evidencia": [
+          {
+            "archivo": "PKG_LOAN_CALC.sql",
+            "fragmento": "SELECT 'CALC-' || TO_CHAR(SYSDATE, 'YYYYMMDD') || '-' ||"
+          },
+          {
+            "archivo": "PKG_LOAN_CALC.sql",
+            "fragmento": "LPAD(seq_calc.NEXTVAL, 5, '0')"
+          },
+          {
+            "archivo": "PKG_LOAN_CALC.sql",
+            "fragmento": "CREATE SEQUENCE seq_calc;"
+          }
+        ],
+        "preguntas_abiertas": [
+          "¿En qué valor está hoy seq_calc en producción? Si se acerca a 100000, es un incidente latente."
+        ],
+        "confianza": "alta"
+      },
+      "correccion": {
+        "resumen": "Se reemplazó «produciría ids repetidos y haría fallar la liquidación» por la condición real (secuencia > 99999 y valores truncados repetidos el mismo día) y se agregó la evidencia de la llave primaria. Confianza bajada a media porque el truncamiento de LPAD no se probó por ejecución."
+      }
+    },
+    {
+      "rule_id": "R-039",
+      "categoria": "efecto_secundario",
+      "descripcion": "El cálculo no modifica préstamos ni cuotas, verificado revisando todo el código de ambos programas. COBOL: las únicas operaciones sobre archivos son OPEN, READ, WRITE y CLOSE; lee LOANREQ.DAT y escribe exactamente un registro en LOANOUT.DAT por cada registro de entrada, incluidos los rechazados; no hay REWRITE, DELETE, CALL ni EXEC. PL/SQL: no hay UPDATE, DELETE ni MERGE en el paquete; la única sentencia de escritura es el INSERT en calc_audit dentro de log_calc (transacción autónoma con COMMIT propio), que se ejecuta solo en liquidaciones con estado OK. Es decir, loans y loan_installments no se modifican, pero el PL/SQL SÍ deja un registro de auditoría por cada liquidación exitosa.",
+      "condicion": "Siempre.",
+      "accion": "Sin actualizaciones a préstamos ni cuotas.",
+      "parametros": {},
+      "evidencia": [
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "OPEN INPUT LOANREQ OUTPUT LOANOUT."
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "READ LOANREQ"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "WRITE OT-REC"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "CLOSE LOANREQ LOANOUT."
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "PRAGMA AUTONOMOUS_TRANSACTION;"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "INSERT INTO calc_audit(calc_id, loan_id, inst_no, pay_date, total_due)"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "COMMIT;"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "log_calc(r.calc_id, p_loan, v_w, v_eff, r.total);"
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [
+        "¿Qué proceso aplica realmente el pago y actualiza el estado de la cuota usando esta liquidación?"
+      ],
+      "estado_revision": "corregida_pendiente_reaprobacion",
+      "tipo": "negocio",
+      "dictamen": {
+        "decision": "⚠️ Corregir antes de aprobar",
+        "justificacion": "La ausencia de actualización de préstamos/cuotas requiere revisar todo el procedimiento; PL/SQL sí registra auditoría."
+      },
+      "original": {
+        "descripcion": "El cálculo es de solo consulta respecto al préstamo: ninguno de los dos componentes marca la cuota como pagada, actualiza saldos ni registra el abono. COBOL lee LOANREQ.DAT y escribe exactamente un registro en LOANOUT.DAT por cada registro de entrada, incluidos los rechazados.",
+        "condicion": "Siempre.",
+        "accion": "Sin actualizaciones a préstamos ni cuotas.",
+        "evidencia": [
+          {
+            "archivo": "LNCALC01.cbl",
+            "fragmento": "OPEN INPUT LOANREQ OUTPUT LOANOUT."
+          },
+          {
+            "archivo": "LNCALC01.cbl",
+            "fragmento": "PERFORM UNTIL W-EOF = 'Y'"
+          },
+          {
+            "archivo": "LNCALC01.cbl",
+            "fragmento": "PERFORM 1000-PRC THRU 1000-EXIT"
+          },
+          {
+            "archivo": "LNCALC01.cbl",
+            "fragmento": "WRITE OT-REC"
+          },
+          {
+            "archivo": "PKG_LOAN_CALC.sql",
+            "fragmento": "SELECT * INTO lo FROM loans WHERE loan_id = p_loan;"
+          }
+        ],
+        "preguntas_abiertas": [
+          "¿Qué proceso aplica realmente el pago y actualiza el estado de la cuota usando esta liquidación?"
+        ],
+        "confianza": "media"
+      },
+      "ausencias": [
+        {
+          "archivo": "LNCALC01.cbl",
+          "patron": "^\\s+(REWRITE|DELETE|CALL|EXEC|SORT|MERGE)\\b",
+          "esperado": 0,
+          "descripcion": "El COBOL no reescribe, borra ni llama a otros programas"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "patron": "^\\s+WRITE\\b",
+          "esperado": 1,
+          "descripcion": "El COBOL tiene una única sentencia WRITE (la salida)"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "patron": "^\\s*(UPDATE|DELETE|MERGE|TRUNCATE)\\b",
+          "desde_fragmento": "CREATE OR REPLACE PACKAGE BODY PKG_LOAN_CALC AS",
+          "esperado": 0,
+          "descripcion": "El cuerpo del paquete no tiene UPDATE, DELETE ni MERGE"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "patron": "^\\s*INSERT\\b",
+          "desde_fragmento": "CREATE OR REPLACE PACKAGE BODY PKG_LOAN_CALC AS",
+          "esperado": 1,
+          "descripcion": "El cuerpo del paquete tiene un único INSERT (la auditoría)"
+        }
+      ],
+      "correccion": {
+        "resumen": "Se revisó todo el procedimiento con comprobaciones automáticas de ausencia: ninguna sentencia modifica préstamos o cuotas, y se aclara que el PL/SQL sí registra auditoría. Confianza subida a alta por la verificación exhaustiva."
+      }
+    },
+    {
+      "rule_id": "R-040",
+      "categoria": "efecto_secundario",
+      "descripcion": "Banderas: cadena de 6 posiciones inicializada en '------' y emitida en la salida. Cada posición tiene una única ruta de asignación: 1 = O (cuota más antigua, R-006); 2 = R (reverso pendiente, R-007); 3 = C (pago después del corte, R-013); 4 = D (vencimiento trasladado, R-010); 5 = X (excedente de abono, R-035); 6 = F (tasa de refinanciación, R-015). Pueden combinarse. En RATE_NOT_CONFIGURED se reinician a '------' (R-030); en los demás rechazos salen '------' porque no se asigna ninguna antes de rechazar.",
+      "condicion": "Siempre.",
+      "accion": "Cada regla escribe su letra en su posición.",
+      "parametros": {
+        "inicial": "------",
+        "posiciones": {
+          "1": "O",
+          "2": "R",
+          "3": "C",
+          "4": "D",
+          "5": "X",
+          "6": "F"
+        }
+      },
+      "evidencia": [
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "MOVE '------' TO W-FLG."
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "MOVE 'O' TO W-FLG(1:1)"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "MOVE 'R' TO W-FLG(2:1)"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "MOVE 'C' TO W-FLG(3:1)"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "MOVE 'D' TO W-FLG(4:1)"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "MOVE 'X' TO W-FLG(5:1)"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "MOVE 'F' TO W-FLG(6:1)"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "MOVE W-FLG TO O-FLG.",
+          "ocurrencia": 1
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "MOVE W-FLG TO O-FLG.",
+          "ocurrencia": 2
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "r.flags := '------';",
+          "ocurrencia": 1
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "setf(r.flags, 1, 'O');"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "setf(r.flags, 2, 'R');"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "setf(r.flags, 3, 'C');"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "setf(r.flags, 4, 'D');"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "setf(r.flags, 5, 'X');"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "setf(r.flags, 6, 'F');"
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [],
+      "estado_revision": "corregida_pendiente_reaprobacion",
+      "tipo": "tecnico",
+      "dictamen": {
+        "decision": "⚠️ Corregir antes de aprobar",
+        "justificacion": "Completar trazabilidad de las seis posiciones de flags y sus rutas de asignación."
+      },
+      "original": {
+        "descripcion": "Banderas: cadena de 6 posiciones inicializada en '------'. Posiciones: 1 = O (cuota más antigua), 2 = R (reverso), 3 = C (después del corte), 4 = D (vencimiento corrido), 5 = X (excedente), 6 = F (tasa de refinanciación). Pueden combinarse.",
+        "condicion": "Siempre.",
+        "accion": "Cada regla escribe su letra en su posición.",
+        "evidencia": [
+          {
+            "archivo": "LNCALC01.cbl",
+            "fragmento": "MOVE '------' TO W-FLG."
+          },
+          {
+            "archivo": "PKG_LOAN_CALC.sql",
+            "fragmento": "r.flags := '------';",
+            "ocurrencia": 1
+          },
+          {
+            "archivo": "PKG_LOAN_CALC.sql",
+            "fragmento": "PROCEDURE setf(p_f IN OUT VARCHAR2, p_pos NUMBER, p_ch VARCHAR2) IS"
+          }
+        ],
+        "preguntas_abiertas": [],
+        "confianza": "alta"
+      },
+      "ausencias": [
+        {
+          "archivo": "LNCALC01.cbl",
+          "patron": "W-FLG\\(",
+          "esperado": 6,
+          "descripcion": "El COBOL asigna a W-FLG por posición solo en 6 sitios"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "patron": "\\bsetf\\(r\\.flags",
+          "esperado": 6,
+          "descripcion": "El PL/SQL llama a setf sobre r.flags solo en 6 sitios"
+        }
+      ],
+      "correccion": {
+        "resumen": "Se completó la trazabilidad: inicialización, las seis asignaciones (una por posición) en ambos programas y la emisión a la salida, con una comprobación automática de que no hay otras asignaciones."
+      }
+    },
+    {
+      "rule_id": "R-041",
+      "categoria": "efecto_secundario",
+      "descripcion": "Formato de salida, determinado por lectura estática de las cláusulas PIC y del código de FMT (no verificado por ejecución). Registro delimitado por '|' con 17 campos: caso (6), préstamo (11), cuota (3 dígitos), estado (24), vencimiento (8, AAAAMMDD), fecha efectiva (8), días (3 dígitos), nueve importes (capital, interés corriente, mora, seguro, gastos, total, aplicado, pendiente y capital pendiente) y banderas (6). Cada importe ocupa 13 posiciones (0000000000.00); los rechazos salen con fechas, días e importes en cero. Longitud del contenido: 202 caracteres, calculada sumando los PIC de W-OUT; el registro físico OT-REC es PIC X(260) y se completa con espacios. COBOL: los importes son PIC 9(10).99, sin signo, así que un negativo perdería el signo y un valor con 10 o más dígitos enteros perdería los de mayor orden. PL/SQL: TO_CHAR(x, 'FM0000000000.00') mostraría el signo '-' en un negativo y, según la documentación de Oracle, no cabría en 13 posiciones si x >= 10^10; el texto se arma con RPAD/LPAD y no se rellena hasta 260.",
+      "condicion": "Siempre (también en rechazos).",
+      "accion": "Formatea la línea de salida.",
+      "parametros": {
+        "separador": "|",
+        "formato_importe": "0000000000.00",
+        "formato_fecha": "YYYYMMDD",
+        "longitud_registro_cobol": 260
+      },
+      "evidencia": [
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "01 OT-REC PIC X(260)."
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "05 O-CASE PIC X(6)."
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "05 O-LOAN PIC X(11)."
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "05 O-INST PIC 999."
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "05 O-ST PIC X(24)."
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "05 O-DUE PIC 9(8)."
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "05 O-EFF PIC 9(8)."
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "05 O-DAYS PIC 999."
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "05 O-PRN PIC 9(10).99."
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "05 O-INT PIC 9(10).99."
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "05 O-LT PIC 9(10).99."
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "05 O-INS PIC 9(10).99."
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "05 O-FEE PIC 9(10).99."
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "05 O-TOT PIC 9(10).99."
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "05 O-APL PIC 9(10).99."
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "05 O-REM PIC 9(10).99."
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "05 O-PREM PIC 9(10).99."
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "05 O-FLG PIC X(6)."
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "RETURN RPAD(p_case, 6) || '|' || RPAD(p_loan, 11) || '|' ||"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "LPAD(r.inst_no, 3, '0') || '|' || RPAD(r.status, 24) || '|' ||"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "LPAD(r.days, 3, '0') || '|' || m(r.principal) || '|' ||"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "RETURN TO_CHAR(x, 'FM0000000000.00');"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "RETURN NVL(TO_CHAR(x, 'YYYYMMDD'), '00000000');"
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [
+        "¿Qué sistema consume LOANOUT.DAT y espera exactamente 260 posiciones o el registro recortado?"
+      ],
+      "estado_revision": "corregida_pendiente_reaprobacion",
+      "tipo": "tecnico",
+      "dictamen": {
+        "decision": "⚠️ Corregir antes de aprobar",
+        "justificacion": "El formato general coincide; validar mediante ejecución signos y longitud efectiva de la salida."
+      },
+      "original": {
+        "descripcion": "Formato de salida: registro delimitado por '|' con caso, préstamo, cuota (3 dígitos), estado (24 caracteres), vencimiento y fecha efectiva (AAAAMMDD, 00000000 si no aplica), días (3 dígitos), 9 importes con formato 0000000000.00 (capital, interés, mora, seguro, gastos, total, aplicado, pendiente, capital pendiente) y banderas. Diferencias: COBOL escribe los importes SIN signo (un negativo pierde el signo) y el registro de salida es de 260 posiciones (contenido real de 202, resto espacios); PL/SQL mostraría el signo '-' y no rellena.",
+        "condicion": "Siempre (también en rechazos).",
+        "accion": "Formatea la línea de salida.",
+        "evidencia": [
+          {
+            "archivo": "LNCALC01.cbl",
+            "fragmento": "01  OT-REC          PIC X(260)."
+          },
+          {
+            "archivo": "LNCALC01.cbl",
+            "fragmento": "05 O-PRN        PIC 9(10).99."
+          },
+          {
+            "archivo": "PKG_LOAN_CALC.sql",
+            "fragmento": "RETURN TO_CHAR(x, 'FM0000000000.00');"
+          },
+          {
+            "archivo": "PKG_LOAN_CALC.sql",
+            "fragmento": "RETURN NVL(TO_CHAR(x, 'YYYYMMDD'), '00000000');"
+          }
+        ],
+        "preguntas_abiertas": [
+          "¿Qué sistema consume LOANOUT.DAT y espera exactamente 260 posiciones o el registro recortado?"
+        ],
+        "confianza": "alta"
+      },
+      "comprobaciones": [
+        "Longitud calculada sumando los PIC de W-OUT: 202 caracteres.",
+        "Longitud de las 22 líneas del golden master: 202 caracteres (el golden master lo genera el modelo de referencia, no el COBOL).",
+        "Pendiente por ejecución: signos y desbordes en COBOL y PL/SQL."
+      ],
+      "correccion": {
+        "resumen": "El formato general se mantiene; se agregó la evidencia campo a campo, la longitud calculada (202, comprobada contra el golden master) y se dejó explícito qué es lectura estática y qué falta validar por ejecución (signos y desbordes)."
+      }
+    },
+    {
+      "rule_id": "R-042",
+      "categoria": "efecto_secundario",
+      "descripcion": "Días de mora mayores a 999: el COBOL guarda los días en W-DAYS PIC 999, calcula COMPUTE W-DAYS = W-DIFF - 1 sin ON SIZE ERROR y los mueve a O-DAYS PIC 999, por lo que se perdería el dígito de mayor orden (1005 -> 005). El PL/SQL conserva el valor completo en v_days (NUMBER) y solo lo recorta al formatear con LPAD(r.days, 3, '0'), que trunca por la derecha (1005 -> 100), según la documentación de Oracle. Ninguno de los dos comportamientos se probó por ejecución. El interés de mora no se ve afectado: el COBOL recorre los días con W-FIRST y W-EFFI (no con W-DAYS) y el PL/SQL con v_days completo.",
+      "condicion": "Días de mora > 999.",
+      "accion": "Truncamiento del campo de días.",
+      "parametros": {
+        "maximo_representable": 999
+      },
+      "evidencia": [
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "77 W-DAYS PIC 999."
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "COMPUTE W-DAYS = W-DIFF - 1"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "PERFORM VARYING W-CHK FROM W-FIRST BY 1"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "UNTIL W-CHK > W-EFFI"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "MOVE W-DAYS TO O-DAYS."
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "05 O-DAYS PIC 999."
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "v_days := v_diff - 1;"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "FOR k IN 1 .. v_days LOOP"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "r.days := v_days;"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "LPAD(r.days, 3, '0') || '|' || m(r.principal) || '|' ||"
+        }
+      ],
+      "confianza": "media",
+      "preguntas_abiertas": [
+        "¿Existen cuotas con más de 999 días de mora que todavía se liquiden?"
+      ],
+      "estado_revision": "corregida_pendiente_reaprobacion",
+      "tipo": "tecnico",
+      "dictamen": {
+        "decision": "⚠️ Corregir antes de aprobar",
+        "justificacion": "Truncamientos potenciales de días >999 requieren prueba de ejecución y evidencia completa de las conversiones."
+      },
+      "original": {
+        "descripcion": "Días de mora mayores a 999 se truncan en la salida de forma distinta: COBOL conserva los 3 dígitos de la derecha (1005 → 005); PL/SQL con LPAD conserva los 3 de la izquierda (1005 → 100). El interés de mora sí se calcula con todos los días.",
+        "condicion": "Días de mora > 999.",
+        "accion": "Truncamiento del campo de días.",
+        "evidencia": [
+          {
+            "archivo": "LNCALC01.cbl",
+            "fragmento": "77  W-DAYS          PIC 999."
+          },
+          {
+            "archivo": "PKG_LOAN_CALC.sql",
+            "fragmento": "LPAD(r.days, 3, '0') || '|' || m(r.principal) || '|' ||"
+          }
+        ],
+        "preguntas_abiertas": [
+          "¿Existen cuotas con más de 999 días de mora que todavía se liquiden?"
+        ],
+        "confianza": "media"
+      },
+      "ausencias": [
+        {
+          "archivo": "LNCALC01.cbl",
+          "patron": "ON\\s+SIZE\\s+ERROR",
+          "esperado": 0,
+          "descripcion": "El COMPUTE de W-DAYS no tiene ON SIZE ERROR"
+        }
+      ],
+      "correccion": {
+        "resumen": "Se completó la evidencia de todas las conversiones (campo W-DAYS, COMPUTE, MOVE y PIC de salida en COBOL; v_days, r.days y LPAD en PL/SQL), se aclaró que el cálculo de la mora no depende del campo truncado y se dejó explícito que el truncamiento no se probó por ejecución."
+      }
+    },
+    {
+      "rule_id": "R-043",
+      "categoria": "efecto_secundario",
+      "descripcion": "Número de cuota informado: en rechazos (incluido RATE_NOT_CONFIGURED) se informa la cuota solicitada; en liquidaciones exitosas se informa la cuota efectivamente liquidada (la más antigua si hubo redirección). En rechazos, todos los importes, fechas y días salen en cero.",
+      "condicion": "Siempre.",
+      "accion": "Cuota en salida = solicitada (error) o liquidada (OK).",
+      "parametros": {},
+      "evidencia": [
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "MOVE RQ-INST TO O-INST."
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "MOVE ZERO TO O-DUE O-EFF O-DAYS O-PRN O-INT O-LT O-INS"
+        },
+        {
+          "archivo": "LNCALC01.cbl",
+          "fragmento": "MOVE W-INSTW TO O-INST."
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "r.inst_no := p_inst;"
+        },
+        {
+          "archivo": "PKG_LOAN_CALC.sql",
+          "fragmento": "r.inst_no   := v_w;"
+        }
+      ],
+      "confianza": "alta",
+      "preguntas_abiertas": [],
+      "estado_revision": "aprobada",
+      "tipo": "tecnico",
+      "dictamen": {
+        "decision": "✅ Aprobada",
+        "justificacion": "Descripción consistente con el comportamiento identificado en el código; conservar evidencia y clasificación apropiadas."
+      },
+      "aprobada_por": "Valentina Burbano (QA Lead)",
+      "fecha_aprobacion": "2026-11-13"
+    }
+  ],
+  "glosario": {
+    "LNCALC01": "Programa batch COBOL de liquidación de cuota de préstamo de libre inversión",
+    "PKG_LOAN_CALC / CALC_CUOTA": "Paquete PL/SQL y función online equivalente de liquidación",
+    "LOANREQ.DAT / LOANOUT.DAT": "Archivo de solicitudes de liquidación / archivo de resultados",
+    "RQ-CASE / p_case": "Identificador del caso o solicitud",
+    "RQ-LOAN / loan_id": "Número del préstamo",
+    "RQ-CUST / customer_id": "Identificador del cliente (se lee pero no interviene en el cálculo)",
+    "RQ-LSTAT / status": "Estado del préstamo ('A' = activo)",
+    "RQ-CCY / currency": "Moneda del préstamo",
+    "RQ-PRIN / principal": "Capital desembolsado original",
+    "RQ-TERM / term_months": "Plazo en meses",
+    "RQ-EA / ea_rate": "Tasa efectiva anual del préstamo (%)",
+    "RQ-INS / insurance_amt": "Valor fijo mensual del seguro (pesos)",
+    "RQ-FDUE / first_due_date": "Fecha del primer vencimiento",
+    "RQ-INST / p_inst": "Cuota solicitada",
+    "RQ-OLD / v_old": "Cuota pendiente más antigua",
+    "W-INSTW / v_w": "Cuota que realmente se liquida",
+    "RQ-ISTAT / v_st": "Estado de la cuota ('P' / 'PAID' = pagada)",
+    "RQ-REV / reversal_pending": "Reverso pendiente sobre la cuota",
+    "RQ-PDATE, RQ-PTIME / p_pay_dt": "Fecha y hora del pago",
+    "RQ-PAMT / p_pay_amt": "Monto pagado",
+    "RQ-FEE / collection_fee": "Gastos de cobranza",
+    "RQ-INSF / p_ins": "Indicador de cobro de seguro",
+    "RQ-RFDT, RQ-RFEA / refi_date, refi_ea_rate": "Fecha y tasa E.A. de refinanciación",
+    "W-DUEI, W-DUE8 / v_due": "Vencimiento ajustado (entero de fecha / AAAAMMDD)",
+    "W-EFFI, W-EFF8 / v_eff": "Fecha efectiva de pago",
+    "W-IM / v_im": "Tasa mensual equivalente",
+    "W-PW / v_pw": "(1+i)^plazo",
+    "W-CF / v_cf": "Cuota fija francesa sin redondear",
+    "W-PK / v_pk": "(1+i)^(N-1)",
+    "W-BAL / v_bal": "Saldo de capital teórico antes de la cuota",
+    "W-INT2 / v_int2": "Interés corriente a 2 decimales",
+    "W-PRN2 / v_prn2": "Capital de la cuota a 2 decimales",
+    "W-LF / v_lt": "Interés de mora acumulado sin redondear",
+    "W-LT2 / v_lt2": "Interés de mora a 2 decimales",
+    "W-MEA / v_m": "Tasa de mora E.A. vigente del día",
+    "W-CAP / v_cap": "Tope legal (usura) E.A. vigente del día",
+    "W-IDF": "Tasa de mora diaria equivalente (base 360)",
+    "W-DIFF / v_diff": "Días entre vencimiento y fecha efectiva",
+    "W-DAYS / v_days": "Días de mora (después del día de gracia)",
+    "W-CN / cn": "Saldos por concepto durante la aplicación del pago (1 gastos, 2 mora, 3 interés, 4 seguro, 5 capital)",
+    "W-AMT / v_amt": "Monto del pago aún por aplicar",
+    "W-REM / v_rem": "Total pendiente después del abono",
+    "W-APL / applied": "Total aplicado",
+    "O-PREM / prin_rem": "Capital pendiente después del abono",
+    "W-FLG / flags": "Banderas de 6 posiciones O R C D X F",
+    "W-HOL-T / bank_holidays": "Calendario de festivos",
+    "W-MT-T / mora_rates": "Tabla de tasas de mora por vigencia",
+    "W-CT-T / legal_caps": "Tabla de tope legal (usura) por vigencia",
+    "c_cut": "Hora de corte HHMM (2000)",
+    "calc_audit / calc_id": "Bitácora de liquidaciones y su identificador"
+  },
+  "dictamen": {
+    "documento": "dictamen_aprobacion_reglas.md",
+    "responsable": "Valentina Burbano (QA Lead)",
+    "fecha": "2026-11-13",
+    "alcance": "Revisión estática de la extracción y su trazabilidad; no equivale a ejecución de COBOL/PL/SQL."
+  },
+  "preguntas_negocio": [
+    "¿Los gastos de cobranza deben corresponder a la cuota solicitada o a la cuota realmente liquidada (R-024)?",
+    "¿Qué estado devolver si falta físicamente una cuota dentro del rango de plazo (R-008)?",
+    "¿Cómo tratar montos de pago negativos, montos con más de dos decimales y cobranza negativa?",
+    "¿Qué hacer con una tasa EA de 0, dada la división por tasa mensual en la fórmula francesa?",
+    "¿Qué regla oficial prevalece para vencimientos en días 29, 30, 31 o fin de febrero?",
+    "¿Qué hacer con pagos en días no hábiles antes o exactamente a las 20:00?",
+    "¿Qué motor prevalece si COBOL y PL/SQL difieren en centavos o fechas?",
+    "¿Debe generarse auditoría para simulaciones que no representan pagos efectivos?",
+    "¿Quién garantiza que `RQ-OLD` no sea cero en el archivo COBOL?"
+  ]
+}
